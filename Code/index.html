@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LIA Agromyss | Centro de Control</title>
+
+  <style>
+    :root {
+      --bg: #07130d;
+      --panel: #0f2117;
+      --panel-2: #13291e;
+      --green: #45d483;
+      --green-soft: rgba(69, 212, 131, 0.14);
+      --yellow: #f6c85f;
+      --red: #ff6b6b;
+      --blue: #6cb6ff;
+      --text: #eef9f0;
+      --muted: #9fb7a7;
+      --line: rgba(255,255,255,0.09);
+      --card-radius: 22px;
+      --shadow: 0 24px 60px rgba(0,0,0,0.28);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        radial-gradient(circle at top left, rgba(69,212,131,0.18), transparent 32%),
+        radial-gradient(circle at bottom right, rgba(108,182,255,0.10), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 280px 1fr;
+      min-height: 100vh;
+    }
+
+    aside {
+      border-right: 1px solid var(--line);
+      background: rgba(7, 19, 13, 0.88);
+      backdrop-filter: blur(18px);
+      padding: 24px 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--green), #1f8f55);
+      display: grid;
+      place-items: center;
+      color: #05200e;
+      font-weight: 900;
+      box-shadow: 0 12px 32px rgba(69,212,131,0.22);
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      margin: 0;
+      line-height: 1.1;
+    }
+
+    .brand p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .nav-title {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      margin: 18px 10px 10px;
+    }
+
+    .nav button {
+      width: 100%;
+      border: 0;
+      color: var(--text);
+      background: transparent;
+      border-radius: 16px;
+      padding: 13px 14px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      font-size: 14px;
+      text-align: left;
+      transition: 0.2s ease;
+    }
+
+    .nav button:hover,
+    .nav button.active {
+      background: var(--green-soft);
+      color: #ffffff;
+    }
+
+    .sidebar-card {
+      margin-top: 26px;
+      padding: 16px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(145deg, rgba(69,212,131,0.12), rgba(255,255,255,0.03));
+    }
+
+    .sidebar-card strong {
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-card span {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+
+    main {
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .search {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 620px;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.04);
+      border-radius: 18px;
+      padding: 12px 16px;
+    }
+
+    .search input {
+      flex: 1;
+      background: transparent;
+      border: 0;
+      outline: 0;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    .search input::placeholder {
+      color: var(--muted);
+    }
+
+    .profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 10px 14px;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    .profile p {
+      margin: 0;
+      font-size: 13px;
+    }
+
+    .profile span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .section {
+      display: none;
+      animation: fade 0.25s ease;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    @keyframes fade {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: 1.5fr 0.9fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .hero-card,
+    .card {
+      background: linear-gradient(145deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+      border: 1px solid var(--line);
+      border-radius: var(--card-radius);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-card {
+      padding: 28px;
+      min-height: 250px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-card::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      right: -80px;
+      bottom: -90px;
+      border-radius: 50%;
+      background: rgba(69,212,131,0.12);
+    }
+
+    .hero-card h2 {
+      margin: 0 0 12px;
+      font-size: clamp(28px, 4vw, 46px);
+      letter-spacing: -0.04em;
+    }
+
+    .hero-card p {
+      color: var(--muted);
+      max-width: 720px;
+      line-height: 1.65;
+      margin: 0 0 22px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      position: relative;
+      z-index: 1;
+    }
+
+    .btn {
+      border: 0;
+      border-radius: 15px;
+      padding: 12px 16px;
+      color: #062012;
+      background: var(--green);
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .btn.secondary {
+      color: var(--text);
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--line);
+    }
+
+    .status-card {
+      padding: 22px;
+    }
+
+    .status-card h3,
+    .card h3 {
+      margin: 0 0 14px;
+      font-size: 16px;
+    }
+
+    .status-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .status-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--line);
+      padding-bottom: 12px;
+    }
+
+    .status-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .status-item span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      border-radius: 999px;
+      padding: 7px 10px;
+      font-size: 12px;
+      font-weight: 800;
+      background: var(--green-soft);
+      color: var(--green);
+    }
+
+    .badge.yellow {
+      background: rgba(246,200,95,0.14);
+      color: var(--yellow);
+    }
+
+    .badge.red {
+      background: rgba(255,107,107,0.13);
+      color: var(--red);
+    }
+
+    .badge.blue {
+      background: rgba(108,182,255,0.13);
+      color: var(--blue);
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .metric {
+      padding: 20px;
+      min-height: 145px;
+    }
+
+    .metric .icon {
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(255,255,255,0.08);
+      margin-bottom: 18px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 30px;
+      letter-spacing: -0.04em;
+      margin-bottom: 4px;
+    }
+
+    .metric span {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .content-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 18px;
+    }
+
+    .card {
+      padding: 22px;
+    }
+
+    .lots {
+      display: grid;
+      gap: 14px;
+    }
+
+    .lot {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid var(--line);
+      background: rgba(0,0,0,0.12);
+    }
+
+    .lot h4 {
+      margin: 0 0 6px;
+      font-size: 16px;
+    }
+
+    .lot p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.4;
+    }
+
+    .progress {
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: var(--value);
+      background: linear-gradient(90deg, var(--green), #b7f7cf);
+      border-radius: 999px;
+    }
+
+    .tasks {
+      display: grid;
+      gap: 12px;
+    }
+
+    .task {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      padding: 14px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+    }
+
+    .task input {
+      margin-top: 4px;
+      accent-color: var(--green);
+    }
+
+    .task strong {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+
+    .task span {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .two-columns {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 18px;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      overflow: hidden;
+      border-radius: 18px;
+    }
+
+    .data-table th,
+    .data-table td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--line);
+      font-size: 13px;
+    }
+
+    .data-table th {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .data-table tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .climate-bars {
+      display: flex;
+      align-items: end;
+      gap: 12px;
+      height: 190px;
+      padding-top: 20px;
+    }
+
+    .bar {
+      flex: 1;
+      min-width: 28px;
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      gap: 8px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .bar span {
+      display: block;
+      border-radius: 12px 12px 4px 4px;
+      background: linear-gradient(180deg, rgba(69,212,131,0.9), rgba(69,212,131,0.18));
+      height: var(--h);
+      border: 1px solid rgba(255,255,255,0.12);
+    }
+
+    .timeline {
+      display: grid;
+      gap: 14px;
+      position: relative;
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 42px 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .timeline-number {
+      width: 42px;
+      height: 42px;
+      border-radius: 15px;
+      display: grid;
+      place-items: center;
+      background: var(--green-soft);
+      color: var(--green);
+      font-weight: 900;
+    }
+
+    .timeline-item h4 {
+      margin: 0 0 4px;
+    }
+
+    .timeline-item p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .worker-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 18px;
+    }
+
+    .worker {
+      padding: 20px;
+    }
+
+    .worker-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .worker-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: rgba(255,255,255,0.08);
+      font-weight: 900;
+    }
+
+    .worker h4 {
+      margin: 0;
+    }
+
+    .worker p {
+      margin: 3px 0 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chat-layout {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 18px;
+    }
+
+    .chat-box {
+      min-height: 520px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .messages {
+      flex: 1;
+      display: grid;
+      align-content: start;
+      gap: 12px;
+      padding: 4px;
+      overflow: auto;
+    }
+
+    .message {
+      max-width: 78%;
+      padding: 14px 16px;
+      border-radius: 18px;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .message.bot {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--line);
+    }
+
+    .message.user {
+      justify-self: end;
+      background: var(--green);
+      color: #062012;
+      font-weight: 650;
+    }
+
+    .chat-input {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.05);
+      color: var(--text);
+      border-radius: 16px;
+      padding: 14px;
+      outline: 0;
+    }
+
+    .empty-note {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 14px;
+    }
+
+    @media (max-width: 1100px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      aside {
+        position: relative;
+        height: auto;
+      }
+
+      .nav {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+
+      .hero,
+      .content-grid,
+      .two-columns,
+      .chat-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .grid-4,
+      .worker-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 720px) {
+      main {
+        padding: 16px;
+      }
+
+      .topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .grid-4,
+      .worker-grid,
+      .nav {
+        grid-template-columns: 1fr;
+      }
+
+      .message {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <aside>
+      <div class="brand">
+        <div class="logo">LIA</div>
+        <div>
+          <h1>Agromyss</h1>
+          <p>Centro de control agrícola</p>
+        </div>
+      </div>
+
+      <div class="nav-title">Navegación</div>
+      <div class="nav">
+        <button class="active" data-section="dashboard">🌱 Dashboard</button>
+        <button data-section="lotes">🧭 Lotes y árboles</button>
+        <button data-section="trabajadores">👥 Trabajadores</button>
+        <button data-section="clima">🌦️ Clima</button>
+        <button data-section="trazabilidad">🔎 Trazabilidad</button>
+        <button data-section="asistente">🤖 Asistente IA</button>
+      </div>
+
+      <div class="sidebar-card">
+        <strong>Modo prototipo</strong>
+        <span>
+          Esta vista usa datos simulados. Luego se conectará a OpenCloud, PostgreSQL,
+          WhatsApp y al agente de inteligencia artificial.
+        </span>
+      </div>
+    </aside>
+
+    <main>
+      <div class="topbar">
+        <div class="search">
+          🔍
+          <input placeholder="Buscar lote, trabajador, tarea o alerta..." />
+        </div>
+
+        <div class="profile">
+          <div class="avatar">SG</div>
+          <div>
+            <p>Sebastián</p>
+            <span>Administrador finca</span>
+          </div>
+        </div>
+      </div>
+
+      <section id="dashboard" class="section active">
+        <div class="hero">
+          <div class="hero-card">
+            <span class="badge">● Sistema en línea</span>
+            <h2>Buenos días, finca Agromyss</h2>
+            <p>
+              Hoy hay condiciones favorables para labores de mantenimiento.
+              La IA futura podrá convertir estos datos en instrucciones diarias
+              para cada trabajador por WhatsApp, voz o texto.
+            </p>
+            <div class="hero-actions">
+              <button class="btn" onclick="goToSection('asistente')">Consultar asistente</button>
+              <button class="btn secondary" onclick="goToSection('trazabilidad')">Ver trazabilidad</button>
+            </div>
+          </div>
+
+          <div class="status-card hero-card">
+            <h3>Resumen del día</h3>
+            <div class="status-list">
+              <div class="status-item">
+                <span>Riesgo fitosanitario</span>
+                <b class="badge yellow">Medio</b>
+              </div>
+              <div class="status-item">
+                <span>Sincronización</span>
+                <b class="badge">98%</b>
+              </div>
+              <div class="status-item">
+                <span>Última lectura</span>
+                <b id="todayLabel">Hoy</b>
+              </div>
+              <div class="status-item">
+                <span>Alertas críticas</span>
+                <b class="badge red">2</b>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-4">
+          <div class="card metric">
+            <div class="icon">💧</div>
+            <strong>64%</strong>
+            <span>Humedad promedio del suelo</span>
+          </div>
+
+          <div class="card metric">
+            <div class="icon">🌡️</div>
+            <strong>27°C</strong>
+            <span>Temperatura promedio</span>
+          </div>
+
+          <div class="card metric">
+            <div class="icon">🌬️</div>
+            <strong>NE</strong>
+            <span>Dirección principal del viento</span>
+          </div>
+
+          <div class="card metric">
+            <div class="icon">✅</div>
+            <strong>12</strong>
+            <span>Tareas programadas hoy</span>
+          </div>
+        </div>
+
+        <div class="content-grid">
+          <div class="card">
+            <h3>Estado de lotes</h3>
+            <div class="lots">
+              <div class="lot">
+                <div>
+                  <h4>Lote A · Cacao</h4>
+                  <p>Humedad estable. Revisión de hojas recomendada en la tarde.</p>
+                  <div class="progress" style="--value: 72%;"><span></span></div>
+                </div>
+                <span class="badge">Estable</span>
+              </div>
+
+              <div class="lot">
+                <div>
+                  <h4>Lote B · Mango</h4>
+                  <p>Humedad baja. Priorizar riego o revisión de suelo.</p>
+                  <div class="progress" style="--value: 38%;"><span></span></div>
+                </div>
+                <span class="badge yellow">Atención</span>
+              </div>
+
+              <div class="lot">
+                <div>
+                  <h4>Lote C · Café</h4>
+                  <p>Fotos recientes pendientes de revisión fitosanitaria.</p>
+                  <div class="progress" style="--value: 55%;"><span></span></div>
+                </div>
+                <span class="badge blue">Revisar</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Tareas de hoy</h3>
+            <div class="tasks">
+              <label class="task">
+                <input type="checkbox" />
+                <div>
+                  <strong>Revisar humedad en Lote B</strong>
+                  <span>Asignado a: Jefe de cuadrilla · 7:30 a.m.</span>
+                </div>
+              </label>
+
+              <label class="task">
+                <input type="checkbox" />
+                <div>
+                  <strong>Tomar fotos de árboles con manchas</strong>
+                  <span>Asignado a: Trabajador de campo · 9:00 a.m.</span>
+                </div>
+              </label>
+
+              <label class="task">
+                <input type="checkbox" />
+                <div>
+                  <strong>Validar inventario de fertilizante</strong>
+                  <span>Asignado a: Administrador finca · 11:00 a.m.</span>
+                </div>
+              </label>
+
+              <label class="task">
+                <input type="checkbox" />
+                <div>
+                  <strong>Registrar lluvia real en pluviómetro</strong>
+                  <span>Asignado a: Campo · 4:00 p.m.</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="lotes" class="section">
+        <div class="hero-card" style="margin-bottom:18px;">
+          <span class="badge blue">Módulo futuro</span>
+          <h2>Lotes, cultivos y árboles</h2>
+          <p>
+            Aquí se visualizará la finca por zonas. Cada lote podrá tener cultivo,
+            área, edad del cultivo, fotos, humedad, historial de labores y estado sanitario.
+          </p>
+        </div>
+
+        <div class="two-columns">
+          <div class="card">
+            <h3>Mapa simple de lotes</h3>
+            <div class="lots">
+              <div class="lot">
+                <div>
+                  <h4>🟩 Lote A</h4>
+                  <p>Cacao · 1.200 plantas · Humedad 68% · Riesgo bajo</p>
+                </div>
+                <span class="badge">OK</span>
+              </div>
+
+              <div class="lot">
+                <div>
+                  <h4>🟨 Lote B</h4>
+                  <p>Mango · 840 árboles · Humedad 41% · Requiere revisión</p>
+                </div>
+                <span class="badge yellow">Riego</span>
+              </div>
+
+              <div class="lot">
+                <div>
+                  <h4>🟦 Lote C</h4>
+                  <p>Café · 2.400 plantas · Fotos pendientes · Riesgo medio</p>
+                </div>
+                <span class="badge blue">Fotos</span>
+              </div>
+
+              <div class="lot">
+                <div>
+                  <h4>🟥 Lote D</h4>
+                  <p>Cacao joven · Mortalidad temprana reportada · Requiere resiembra</p>
+                </div>
+                <span class="badge red">Alerta</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Ficha rápida del árbol</h3>
+            <div class="empty-note">
+              <strong>Árbol demo: MG-B-014</strong><br /><br />
+              Cultivo: Mango<br />
+              Edad estimada: 4 años<br />
+              Última foto: hace 2 días<br />
+              Humedad cercana: 42%<br />
+              Observación: hojas con leve amarillamiento.<br /><br />
+              En la versión real, al hacer clic en un árbol se abrirá su historial completo.
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="trabajadores" class="section">
+        <div class="hero-card" style="margin-bottom:18px;">
+          <span class="badge">Gestión operativa</span>
+          <h2>Trabajadores y tareas</h2>
+          <p>
+            Esta vista servirá para ver quién trabaja, qué tarea tiene asignada,
+            si ya la terminó y qué mensaje debería recibir por WhatsApp.
+          </p>
+        </div>
+
+        <div class="worker-grid">
+          <div class="card worker">
+            <div class="worker-top">
+              <div class="worker-avatar">JC</div>
+              <div>
+                <h4>Juan Carlos</h4>
+                <p>Jefe de cuadrilla</p>
+              </div>
+            </div>
+            <span class="badge">4 tareas hoy</span>
+          </div>
+
+          <div class="card worker">
+            <div class="worker-top">
+              <div class="worker-avatar">MR</div>
+              <div>
+                <h4>María R.</h4>
+                <p>Campo</p>
+              </div>
+            </div>
+            <span class="badge yellow">1 tarea atrasada</span>
+          </div>
+
+          <div class="card worker">
+            <div class="worker-top">
+              <div class="worker-avatar">DL</div>
+              <div>
+                <h4>Daniel L.</h4>
+                <p>Campo</p>
+              </div>
+            </div>
+            <span class="badge blue">Fotos pendientes</span>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px;">
+          <h3>Plan operativo del día</h3>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Hora</th>
+                <th>Trabajador</th>
+                <th>Actividad</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>7:30 a.m.</td>
+                <td>Juan Carlos</td>
+                <td>Revisar humedad en Lote B</td>
+                <td><span class="badge yellow">Pendiente</span></td>
+              </tr>
+              <tr>
+                <td>9:00 a.m.</td>
+                <td>Daniel L.</td>
+                <td>Tomar fotos de árboles afectados</td>
+                <td><span class="badge blue">En campo</span></td>
+              </tr>
+              <tr>
+                <td>11:00 a.m.</td>
+                <td>María R.</td>
+                <td>Registrar lluvia real</td>
+                <td><span class="badge">Programada</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="clima" class="section">
+        <div class="hero-card" style="margin-bottom:18px;">
+          <span class="badge blue">Clima y entorno</span>
+          <h2>Condiciones agroclimáticas</h2>
+          <p>
+            Prototipo del módulo para temperatura, humedad, lluvia, viento,
+            pronóstico y alertas antes de programar labores como fumigación o fertilización foliar.
+          </p>
+        </div>
+
+        <div class="two-columns">
+          <div class="card">
+            <h3>Humedad estimada por día</h3>
+            <div class="climate-bars">
+              <div class="bar" style="--h: 58%;"><span></span>Lun</div>
+              <div class="bar" style="--h: 68%;"><span></span>Mar</div>
+              <div class="bar" style="--h: 51%;"><span></span>Mié</div>
+              <div class="bar" style="--h: 78%;"><span></span>Jue</div>
+              <div class="bar" style="--h: 62%;"><span></span>Vie</div>
+              <div class="bar" style="--h: 45%;"><span></span>Sáb</div>
+              <div class="bar" style="--h: 70%;"><span></span>Dom</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Alertas climáticas</h3>
+            <div class="tasks">
+              <div class="task">
+                <div>⚠️</div>
+                <div>
+                  <strong>Posible lluvia en la tarde</strong>
+                  <span>No se recomienda aplicación foliar después de las 2:00 p.m.</span>
+                </div>
+              </div>
+
+              <div class="task">
+                <div>💧</div>
+                <div>
+                  <strong>Humedad baja en Lote B</strong>
+                  <span>Validar riego o cobertura del suelo.</span>
+                </div>
+              </div>
+
+              <div class="task">
+                <div>🌬️</div>
+                <div>
+                  <strong>Viento moderado NE</strong>
+                  <span>Evitar fumigación si aumenta la velocidad.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="trazabilidad" class="section">
+        <div class="hero-card" style="margin-bottom:18px;">
+          <span class="badge">Historial completo</span>
+          <h2>Trazabilidad agrícola</h2>
+          <p>
+            La idea es que cada lote o árbol tenga una historia: siembra,
+            mantenimiento, clima, fotos, trabajadores, insumos, cosecha y código final.
+          </p>
+        </div>
+
+        <div class="card">
+          <h3>Línea de tiempo del Lote A · Cacao</h3>
+          <div class="timeline">
+            <div class="timeline-item">
+              <div class="timeline-number">1</div>
+              <div>
+                <h4>Registro de lote</h4>
+                <p>Área, cultivo, tipo de siembra y material vegetal registrados.</p>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-number">2</div>
+              <div>
+                <h4>Análisis de suelo</h4>
+                <p>Documento cargado y futura recomendación generada por IA.</p>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-number">3</div>
+              <div>
+                <h4>Mantenimiento</h4>
+                <p>Fertilización, podas, labores culturales y monitoreo MIPE.</p>
+              </div>
+            </div>
+
+            <div class="timeline-item">
+              <div class="timeline-number">4</div>
+              <div>
+                <h4>Cosecha</h4>
+                <p>Pesaje, clasificación, merma, calidad y código de trazabilidad.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="asistente" class="section">
+        <div class="chat-layout">
+          <div class="card chat-box">
+            <h3>Asistente LIA demo</h3>
+            <div class="messages" id="messages">
+              <div class="message bot">
+                Hola. Soy una simulación del asistente LIA. Todavía no estoy conectado a OpenCloud,
+                pero puedes probar preguntas como: “¿qué hago hoy?”, “estado del lote B” o “alertas”.
+              </div>
+            </div>
+
+            <div class="chat-input">
+              <input id="chatInput" placeholder="Escribe una pregunta de prueba..." />
+              <button class="btn" onclick="sendMessage()">Enviar</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <h3>Qué hará este asistente después</h3>
+            <div class="empty-note">
+              1. Leer datos reales de la finca.<br />
+              2. Revisar clima, humedad, fotos y tareas.<br />
+              3. Generar recomendaciones diarias.<br />
+              4. Enviar instrucciones por WhatsApp.<br />
+              5. Explicar dashboards en lenguaje sencillo.<br />
+              6. Pedir aprobación humana en decisiones delicadas.
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const buttons = document.querySelectorAll(".nav button");
+    const sections = document.querySelectorAll(".section");
+
+    buttons.forEach((button) => {
+      button.addEventListener("click", () => {
+        goToSection(button.dataset.section);
+      });
+    });
+
+    function goToSection(sectionId) {
+      buttons.forEach((button) => {
+        button.classList.toggle("active", button.dataset.section === sectionId);
+      });
+
+      sections.forEach((section) => {
+        section.classList.toggle("active", section.id === sectionId);
+      });
+    }
+
+    const date = new Date();
+    const formatter = new Intl.DateTimeFormat("es-CO", {
+      weekday: "long",
+      day: "numeric",
+      month: "long"
+    });
+
+    document.getElementById("todayLabel").textContent = formatter.format(date);
+
+    function sendMessage() {
+      const input = document.getElementById("chatInput");
+      const text = input.value.trim();
+
+      if (!text) return;
+
+      addMessage(text, "user");
+      input.value = "";
+
+      setTimeout(() => {
+        addMessage(getBotReply(text), "bot");
+      }, 450);
+    }
+
+    function addMessage(text, type) {
+      const messages = document.getElementById("messages");
+      const div = document.createElement("div");
+      div.className = `message ${type}`;
+      div.textContent = text;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function getBotReply(text) {
+      const value = text.toLowerCase();
+
+      if (value.includes("hoy") || value.includes("tarea")) {
+        return "Para hoy priorizaría: revisar humedad del Lote B, tomar fotos de árboles con manchas, registrar lluvia real y validar inventario de fertilizante.";
+      }
+
+      if (value.includes("lote b") || value.includes("mango")) {
+        return "El Lote B aparece con humedad baja y requiere atención. En una versión real, revisaría historial, clima, fotos y últimas labores antes de recomendar riego o cobertura.";
+      }
+
+      if (value.includes("alerta") || value.includes("riesgo")) {
+        return "Hay dos alertas demo: humedad baja en Lote B y posible lluvia en la tarde. Se debería evitar aplicación foliar si hay lluvia próxima.";
+      }
+
+      if (value.includes("ia") || value.includes("opencloud")) {
+        return "En la versión real me conectaría al agente de OpenCloud, a la base de datos y a documentos agronómicos para responder con contexto real de la finca.";
+      }
+
+      return "Respuesta demo: todavía no estoy conectado a datos reales, pero esta sería la zona donde el agente LIA explicaría el estado de la finca y propondría acciones.";
+    }
+
+    document.getElementById("chatInput").addEventListener("keydown", (event) => {
+      if (event.key === "Enter") {
+        sendMessage();
+      }
+    });
+  </script>
+</body>
+</html>
