@@ -25,6 +25,7 @@
       <nav class="nav">
         <button class="active" data-page="inicio">Inicio</button>
         <button data-page="lotes">Lotes</button>
+        <button data-page="sensores">Sensores</button>
         <button data-page="equipo">Equipo</button>
         <button data-page="clima">Clima</button>
         <button data-page="trazabilidad">Trazabilidad</button>
@@ -49,18 +50,18 @@
               Prototipo 3.1 · Identidad Agromyss
             </div>
 
-            <h1>La finca, convertida en <span>decisiones.</span></h1>
+            <div class="hero-center">
+              <h1>Panel operativo</h1>
 
-            <p>
-              Un panel privado para leer clima, lotes, trabajadores, trazabilidad,
-              alertas y recomendaciones agrícolas desde una sola experiencia.
-              La paleta ahora toma como base el olivo del logo de Agromyss.
-            </p>
+              <p>
+                Vista compacta de clima, lotes, alertas y tareas en un solo lugar.
+              </p>
 
-            <div class="actions">
-              <button class="btn light" onclick="openPage('asistente')">Preguntar a LIA</button>
-              <button class="btn secondary" onclick="openPage('trazabilidad')">Ver trazabilidad</button>
-              <button class="btn secondary" onclick="openPage('lotes')">Explorar lotes</button>
+              <div class="actions">
+                <button class="btn light" onclick="openPage('asistente')">Preguntar a LIA</button>
+                <button class="btn secondary" onclick="openPage('trazabilidad')">Ver trazabilidad</button>
+                <button class="btn secondary" onclick="openPage('lotes')">Explorar lotes</button>
+              </div>
             </div>
           </div>
 
@@ -95,7 +96,7 @@
             <div class="metric-icon">💧</div>
             <div>
               <small>Humedad suelo</small>
-              <strong>64%</strong>
+                <strong id="homeMoisture">64%</strong>
             </div>
           </div>
 
@@ -103,7 +104,7 @@
             <div class="metric-icon">🌡</div>
             <div>
               <small>Temperatura</small>
-              <strong>27°C</strong>
+                <strong id="homeTemperature">27°C</strong>
             </div>
           </div>
 
@@ -111,7 +112,7 @@
             <div class="metric-icon">🌬</div>
             <div>
               <small>Dirección viento</small>
-              <strong>NE</strong>
+                <strong id="homeWind">NE</strong>
             </div>
           </div>
 
@@ -119,38 +120,49 @@
             <div class="metric-icon">☑</div>
             <div>
               <small>Tareas activas</small>
-              <strong>12</strong>
+                <strong id="homeTasks">12</strong>
             </div>
           </div>
         </div>
 
         <div class="bento">
-          <div class="tile large">
+          <div class="tile large map-tile">
             <div class="card-title">
               <h3>Mapa vivo de la finca</h3>
               <span class="pill blue">Vista demo</span>
             </div>
 
             <div class="farm-map">
-              <div class="plot a">Lote A<br>Cacao</div>
-              <div class="plot b warning">Lote B<br>Mango</div>
-              <div class="plot c blue">Lote C<br>Café</div>
-              <div class="plot d danger">Lote D<br>Resiembra</div>
-              <div class="plot e">Vivero</div>
-              <div class="plot f blue">Zona hídrica</div>
+              <svg class="parcel-map" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet" aria-label="Mapa de parcelas">
+                <rect x="10" y="10" width="700" height="340" rx="24" class="parcel-frame" />
+                <polygon points="60,70 220,40 280,120 140,150" class="parcel" />
+                <polygon points="260,55 400,40 460,120 320,140" class="parcel warning" />
+                <polygon points="480,60 660,70 630,150 470,140" class="parcel blue" />
+                <polygon points="110,190 250,170 280,260 120,280" class="parcel" />
+                <polygon points="300,170 460,170 490,250 320,260" class="parcel danger" />
+                <polygon points="510,170 660,200 640,290 490,260" class="parcel blue" />
+                <circle cx="360" cy="170" r="32" class="parcel-core" />
+                <text x="360" y="174" text-anchor="middle" class="parcel-label core">Gateway</text>
+                <text x="160" y="110" text-anchor="middle" class="parcel-label">Lote A · Cacao</text>
+                <text x="360" y="110" text-anchor="middle" class="parcel-label">Lote B · Mango</text>
+                <text x="570" y="110" text-anchor="middle" class="parcel-label">Lote C · Café</text>
+                <text x="190" y="230" text-anchor="middle" class="parcel-label">Vivero</text>
+                <text x="395" y="230" text-anchor="middle" class="parcel-label">Lote D · Resiembra</text>
+                <text x="575" y="235" text-anchor="middle" class="parcel-label">Zona hídrica</text>
+              </svg>
             </div>
           </div>
 
           <div class="tile">
             <small>Humedad promedio</small>
-            <div class="big-number">64%</div>
+            <div class="big-number" id="homeAverageMoisture">64%</div>
             <p class="muted">Lectura estable, con excepción del Lote B.</p>
             <div class="mini-chart"></div>
           </div>
 
           <div class="tile">
             <small>Temperatura</small>
-            <div class="big-number">27°</div>
+            <div class="big-number" id="homeAverageTemperature">27°</div>
             <p class="muted">Condición adecuada para labores de mantenimiento.</p>
             <div class="mini-chart"></div>
           </div>
@@ -280,6 +292,70 @@
               <h3>Mapa por coordenadas</h3>
               <p>Luego cada lote podrá verse con coordenadas, fotos, sensores y bitácora completa.</p>
               <button class="btn">Diseñar mapa</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="sensores" class="page">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Datos simulados</span>
+              <h2>Sensores y telemetría</h2>
+              <p class="section-copy">
+                Una vista de ejemplo para mostrar cómo llegan los datos desde sensores de campo,
+                pasan por un gateway y aparecen en el tablero con alertas y tendencias.
+              </p>
+            </div>
+            <span class="pill blue">Actualización cada 30 s</span>
+          </div>
+
+          <div class="sensor-summary">
+            <div class="info-card sensor-card" id="sensorCardOne"></div>
+            <div class="info-card sensor-card" id="sensorCardTwo"></div>
+            <div class="info-card sensor-card" id="sensorCardThree"></div>
+            <div class="info-card sensor-card" id="sensorCardFour"></div>
+          </div>
+
+          <div class="trend-card">
+            <div class="card-title">
+              <div>
+                <h3>Tendencia de 24 horas</h3>
+                <p class="section-copy" style="margin:8px 0 0;">Una mini gráfica para mostrar variación de humedad y temperatura durante el día.</p>
+              </div>
+              <span class="pill blue">Datos vivos</span>
+            </div>
+
+            <svg id="sensorTrendChart" class="demo-chart" viewBox="0 0 860 240" preserveAspectRatio="none" aria-label="Tendencia simulada de sensores"></svg>
+          </div>
+
+          <div class="sensor-grid">
+            <div class="info-card sensor-stream">
+              <div class="card-title">
+                <h3>Flujo de datos</h3>
+                <span class="pill">Esquema demo</span>
+              </div>
+
+              <div class="pipeline" id="sensorPipeline"></div>
+            </div>
+
+            <div class="info-card sensor-stream">
+              <div class="card-title">
+                <h3>Lecturas recientes</h3>
+                <span class="pill blue">Fake feed</span>
+              </div>
+
+              <div class="reading-list" id="readingList"></div>
+            </div>
+
+            <div class="info-card sensor-stream wide-card">
+              <div class="card-title">
+                <h3>Qué verá la empresa</h3>
+                <span class="pill yellow">Demo comercial</span>
+              </div>
+
+              <div class="feature-list" id="featureList"></div>
             </div>
           </div>
         </div>
