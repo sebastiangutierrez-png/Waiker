@@ -217,7 +217,7 @@ body::before {
 
 .hero {
   display: grid;
-  grid-template-columns: 1.12fr .88fr;
+  grid-template-columns: .95fr 1.05fr;
   gap: 20px;
   padding-top: 24px;
   margin-bottom: 10px;
@@ -355,7 +355,7 @@ h1 span {
 }
 
 .command {
-  min-height: 240px;
+  min-height: 360px;
   border: 1px solid rgba(255,255,255,.75);
   border-radius: var(--radius-xl);
   background: rgba(255, 253, 246, .88);
@@ -364,6 +364,7 @@ h1 span {
   padding: 14px;
   display: flex;
   flex-direction: column;
+  gap: 8px;
 }
 
 .card-title {
@@ -403,19 +404,131 @@ h1 span {
 }
 
 .ai-message {
+  position: relative;
   flex: 1;
   border: 1px solid var(--line);
-  border-radius: 28px;
+  border-radius: 26px;
   background:
-    linear-gradient(145deg, rgba(139,144,34,.12), rgba(255,250,240,.88));
+    linear-gradient(145deg, rgba(139,144,34,.16), rgba(255,250,240,.95));
   color: var(--text);
-  padding: 14px;
+  padding: 16px 18px;
   line-height: 1.65;
-  font-size: 13px;
+  font-size: 14px;
+  min-height: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.6), inset 0 12px 24px rgba(139,144,34,.08);
+  border-left: 4px solid rgba(139,144,34,.6);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,144,34,.6) rgba(255,255,255,.4);
+}
+
+.ai-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--olive-dark);
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.ai-label::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--gold);
+  box-shadow: 0 0 0 5px rgba(197,154,57,.18);
+}
+
+.ai-body {
+  color: var(--text);
+}
+
+.ai-message::-webkit-scrollbar {
+  width: 8px;
+}
+
+.ai-message::-webkit-scrollbar-track {
+  background: rgba(255,255,255,.5);
+  border-radius: 999px;
+}
+
+.ai-message::-webkit-scrollbar-thumb {
+  background: rgba(139,144,34,.6);
+  border-radius: 999px;
+}
+
+.ai-message ul {
+  margin: 10px 0;
+  padding-left: 18px;
+}
+
+.ai-message li {
+  margin: 6px 0;
+}
+
+.ai-message code {
+  font-family: "SFMono-Regular", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  background: rgba(255,255,255,.7);
+  border: 1px solid rgba(139,144,34,.18);
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: .94em;
+}
+
+.ai-message a {
+  color: var(--forest);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.ai-message.loading {
+  position: relative;
+  color: transparent;
+}
+
+.ai-message.loading .ai-label {
+  color: var(--olive-dark);
+}
+
+.ai-message.loading .ai-body {
+  color: transparent;
+}
+
+.ai-message.loading::before {
+  content: "";
+  position: absolute;
+  inset: 52px 14px 14px;
+  border-radius: 18px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.15), rgba(255,255,255,.55), rgba(255,255,255,.15));
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  opacity: .9;
+}
+
+.ai-message.loading::after {
+  content: "";
+  position: absolute;
+  inset: 66px 22px 20px;
+  background-image:
+    linear-gradient(rgba(49,57,24,.14) 14px, transparent 14px),
+    linear-gradient(rgba(49,57,24,.10) 14px, transparent 14px);
+  background-size: 100% 24px, 78% 24px;
+  background-position: 0 0, 0 96px;
+  background-repeat: repeat-y;
+  opacity: .55;
 }
 
 .ai-message strong {
   color: var(--olive-dark);
+  letter-spacing: .02em;
 }
 
 .quick-prompts {
@@ -423,6 +536,15 @@ h1 span {
   grid-template-columns: repeat(2, 1fr);
   gap: 8px;
   margin: 12px 0;
+  transition: opacity .2s ease, max-height .2s ease, margin .2s ease;
+  max-height: 200px;
+}
+
+.quick-prompts.hidden {
+  opacity: 0;
+  max-height: 0;
+  margin: 0;
+  pointer-events: none;
 }
 
 .prompt {
@@ -458,6 +580,43 @@ h1 span {
   outline: none;
   padding: 11px 14px;
   min-width: 0;
+}
+
+.is-booting .metric,
+.is-booting .tile,
+.is-booting .info-card,
+.is-booting .task,
+.is-booting .pipeline-step,
+.is-booting .reading,
+.is-booting .feature-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.is-booting .metric::after,
+.is-booting .tile::after,
+.is-booting .info-card::after,
+.is-booting .task::after,
+.is-booting .pipeline-step::after,
+.is-booting .reading::after,
+.is-booting .feature-item::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, rgba(255,255,255,0) 30%, rgba(255,255,255,.55) 50%, rgba(255,255,255,0) 70%);
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  opacity: .5;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
 }
 
 .metrics {
