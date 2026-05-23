@@ -359,7 +359,6 @@ async function requestAiReply(prompt) {
         { role: "user", content: prompt },
       ],
       temperature: 0.4,
-      max_tokens: 240,
     }),
   });
 
@@ -388,16 +387,16 @@ async function askAi(prompt, targetId) {
 
   aiMessageLocked = true;
   element.classList.add("loading");
-  element.innerHTML = "<strong>LIA:</strong><br>Consultando...";
+  element.innerHTML = "<div class=\"ai-label\">LIA</div><div class=\"ai-body\">Consultando...</div>";
 
   try {
     const reply = await requestAiReply(prompt);
     element.classList.remove("loading");
-    element.innerHTML = `<strong>LIA:</strong><br>${renderMarkdown(reply)}`;
+    element.innerHTML = `<div class=\"ai-label\">LIA</div><div class=\"ai-body\">${renderMarkdown(reply)}</div>`;
   } catch (error) {
     const fallback = getReply(prompt);
     element.classList.remove("loading");
-    element.innerHTML = `<strong>LIA:</strong><br>${renderMarkdown(fallback)}`;
+    element.innerHTML = `<div class=\"ai-label\">LIA</div><div class=\"ai-body\">${renderMarkdown(fallback)}</div>`;
   }
 }
 
