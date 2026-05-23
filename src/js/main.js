@@ -4,6 +4,9 @@ const pages = document.querySelectorAll(".page");
 const API_BASE = "https://openclaw-proxy.sebas-guterrez0.workers.dev";
 let cachedModelId = null;
 let aiMessageLocked = false;
+let booting = true;
+
+document.body.classList.add("is-booting");
 
 const demoState = {
   home: {
@@ -211,6 +214,11 @@ function renderDemoDashboard(state) {
     aiMessage.innerHTML = `<strong>Resumen de hoy:</strong><br>Humedad promedio ${state.home.moisture}%, temperatura ${state.home.temperature}°C y riesgo fitosanitario ${state.home.risk}%. El Lote B sigue en atención por humedad baja.`;
   }
 
+  if (booting) {
+    document.body.classList.remove("is-booting");
+    booting = false;
+  }
+
   renderSensorCard("sensorCardOne", state.sensors[0]);
   renderSensorCard("sensorCardTwo", state.sensors[1]);
   renderSensorCard("sensorCardThree", state.sensors[2]);
@@ -265,6 +273,54 @@ function escapeHtml(value) {
     .replaceAll("'", "&#39;");
 }
 
+function formatInlineMarkdown(value) {
+  return value
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+}
+
+function renderMarkdown(value) {
+  const escaped = escapeHtml(value);
+  const lines = escaped.split("\n");
+  let html = "";
+  let inList = false;
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    const isListItem = /^[-*]\s+/.test(trimmed);
+
+    if (isListItem) {
+      if (!inList) {
+        html += "<ul>";
+        inList = true;
+      }
+      const item = trimmed.replace(/^[-*]\s+/, "");
+      html += `<li>${formatInlineMarkdown(item)}</li>`;
+      return;
+    }
+
+    if (inList) {
+      html += "</ul>";
+      inList = false;
+    }
+
+    if (!trimmed) {
+      html += "<br>";
+      return;
+    }
+
+    html += `${formatInlineMarkdown(line)}<br>`;
+  });
+
+  if (inList) {
+    html += "</ul>";
+  }
+
+  return html.replace(/<br>$/u, "");
+}
+
 async function getModelId() {
   if (cachedModelId) return cachedModelId;
 
@@ -298,7 +354,7 @@ async function requestAiReply(prompt) {
         {
           role: "system",
           content:
-            "Eres LIA, asistente agrícola. Responde en español, con tono claro y práctico.",
+            "Eres LIA, asistente agrícola. Responde en español, con tono claro y práctico. Usa Markdown cuando ayude (listas, negritas, codigo).",
         },
         { role: "user", content: prompt },
       ],
@@ -325,15 +381,23 @@ async function askAi(prompt, targetId) {
   const element = document.getElementById(targetId);
   if (!element) return;
 
+  const promptContainer = element.closest(".command")?.querySelector(".quick-prompts");
+  if (promptContainer) {
+    promptContainer.classList.add("hidden");
+  }
+
   aiMessageLocked = true;
+  element.classList.add("loading");
   element.innerHTML = "<strong>LIA:</strong><br>Consultando...";
 
   try {
     const reply = await requestAiReply(prompt);
-    element.innerHTML = `<strong>LIA:</strong><br>${escapeHtml(reply)}`;
+    element.classList.remove("loading");
+    element.innerHTML = `<strong>LIA:</strong><br>${renderMarkdown(reply)}`;
   } catch (error) {
     const fallback = getReply(prompt);
-    element.innerHTML = `<strong>LIA:</strong><br>${escapeHtml(fallback)}`;
+    element.classList.remove("loading");
+    element.innerHTML = `<strong>LIA:</strong><br>${renderMarkdown(fallback)}`;
   }
 }
 
