@@ -3,6 +3,7 @@ const pages = document.querySelectorAll(".page");
 
 const API_BASE = "https://openclaw-proxy.sebas-guterrez0.workers.dev";
 let cachedModelId = null;
+let aiMessageLocked = false;
 
 const demoState = {
   home: {
@@ -206,7 +207,7 @@ function renderDemoDashboard(state) {
   setText("homeTasks", String(state.home.tasks));
 
   const aiMessage = document.getElementById("aiMessage");
-  if (aiMessage) {
+  if (aiMessage && !aiMessageLocked) {
     aiMessage.innerHTML = `<strong>Resumen de hoy:</strong><br>Humedad promedio ${state.home.moisture}%, temperatura ${state.home.temperature}°C y riesgo fitosanitario ${state.home.risk}%. El Lote B sigue en atención por humedad baja.`;
   }
 
@@ -324,6 +325,7 @@ async function askAi(prompt, targetId) {
   const element = document.getElementById(targetId);
   if (!element) return;
 
+  aiMessageLocked = true;
   element.innerHTML = "<strong>LIA:</strong><br>Consultando...";
 
   try {
