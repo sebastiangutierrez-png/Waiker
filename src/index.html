@@ -129,27 +129,46 @@
           <div class="tile large map-tile">
             <div class="card-title">
               <h3>Mapa vivo de la finca</h3>
-              <span class="pill blue">Vista demo</span>
+              <span class="pill blue">Mind map</span>
             </div>
 
-            <div class="farm-map">
-              <svg class="parcel-map" viewBox="0 0 720 360" preserveAspectRatio="xMidYMid meet" aria-label="Mapa de parcelas">
-                <rect x="10" y="10" width="700" height="340" rx="24" class="parcel-frame" />
-                <polygon points="60,70 220,40 280,120 140,150" class="parcel" />
-                <polygon points="260,55 400,40 460,120 320,140" class="parcel warning" />
-                <polygon points="480,60 660,70 630,150 470,140" class="parcel blue" />
-                <polygon points="110,190 250,170 280,260 120,280" class="parcel" />
-                <polygon points="300,170 460,170 490,250 320,260" class="parcel danger" />
-                <polygon points="510,170 660,200 640,290 490,260" class="parcel blue" />
-                <circle cx="360" cy="170" r="32" class="parcel-core" />
-                <text x="360" y="174" text-anchor="middle" class="parcel-label core">Gateway</text>
-                <text x="160" y="110" text-anchor="middle" class="parcel-label">Lote A · Cacao</text>
-                <text x="360" y="110" text-anchor="middle" class="parcel-label">Lote B · Mango</text>
-                <text x="570" y="110" text-anchor="middle" class="parcel-label">Lote C · Café</text>
-                <text x="190" y="230" text-anchor="middle" class="parcel-label">Vivero</text>
-                <text x="395" y="230" text-anchor="middle" class="parcel-label">Lote D · Resiembra</text>
-                <text x="575" y="235" text-anchor="middle" class="parcel-label">Zona hídrica</text>
-              </svg>
+            <div class="map-board">
+              <div class="map-center">
+                <strong>Gateway central</strong>
+                <span>Conectividad 98% · 18 s</span>
+              </div>
+              <div class="map-grid">
+                <div class="map-card">
+                  <span class="pill">Estable</span>
+                  <h4>Lote A · Cacao</h4>
+                  <p>Humedad 68% · 1.200 plantas</p>
+                </div>
+                <div class="map-card warning">
+                  <span class="pill yellow">Atención</span>
+                  <h4>Lote B · Mango</h4>
+                  <p>Humedad 41% · alerta activa</p>
+                </div>
+                <div class="map-card blue">
+                  <span class="pill blue">Fotos</span>
+                  <h4>Lote C · Café</h4>
+                  <p>3 fotos pendientes · diagnóstico</p>
+                </div>
+                <div class="map-card danger">
+                  <span class="pill red">Resiembra</span>
+                  <h4>Lote D · Cacao</h4>
+                  <p>Mortalidad 7% · plan en curso</p>
+                </div>
+                <div class="map-card">
+                  <span class="pill">Vivero</span>
+                  <h4>Zona de plántulas</h4>
+                  <p>Revisión de sombra a las 3:00 p.m.</p>
+                </div>
+                <div class="map-card blue">
+                  <span class="pill blue">Hídrica</span>
+                  <h4>Zona hídrica</h4>
+                  <p>Lluvia ligera · 2 mm</p>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -157,17 +176,15 @@
             <small>Humedad promedio</small>
             <div class="big-number" id="homeAverageMoisture">64%</div>
             <p class="muted">Lectura estable, con excepción del Lote B.</p>
-            <div class="mini-chart"></div>
           </div>
 
           <div class="tile">
             <small>Temperatura</small>
             <div class="big-number" id="homeAverageTemperature">27°</div>
             <p class="muted">Condición adecuada para labores de mantenimiento.</p>
-            <div class="mini-chart"></div>
           </div>
 
-          <div class="tile tall">
+          <div class="tile tall risk-tile">
             <div class="card-title">
               <h3>Riesgo fitosanitario</h3>
               <span class="pill yellow">Medio</span>
@@ -249,50 +266,154 @@
 
       <section id="lotes" class="page">
         <div class="panel">
-          <h2>Lotes y árboles</h2>
-
-          <div class="cards-grid">
-            <div class="info-card">
-              <span class="pill">Estable</span>
-              <h3>Lote A · Cacao</h3>
-              <p>1.200 plantas. Humedad 68%. Revisión de hojas recomendada durante la tarde.</p>
-              <button class="btn">Abrir historial</button>
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Mapa operativo</span>
+              <h2>Lotes y árboles</h2>
+              <p class="section-copy">
+                Vista interactiva por lote con estado, humedad, fotos y tareas sugeridas por el agente.
+              </p>
             </div>
-
-            <div class="info-card">
-              <span class="pill yellow">Atención</span>
-              <h3>Lote B · Mango</h3>
-              <p>840 árboles. Humedad 41%. Priorizar revisión manual del suelo y fotos recientes.</p>
-              <button class="btn">Ver alerta</button>
+            <div class="lote-toolbar">
+              <button class="chip active">Todos</button>
+              <button class="chip">Alertas</button>
+              <button class="chip">Fotos</button>
+              <button class="chip">Riego</button>
             </div>
+          </div>
 
-            <div class="info-card">
-              <span class="pill blue">Revisar</span>
-              <h3>Lote C · Café</h3>
-              <p>Fotos recientes pendientes de diagnóstico fitosanitario. Riesgo medio por humedad.</p>
-              <button class="btn">Subir fotos</button>
-            </div>
+          <div class="lotes-grid">
+            <article class="lote-card">
+              <div class="lote-head">
+                <div>
+                  <span class="pill">Estable</span>
+                  <h3>Lote A · Cacao</h3>
+                </div>
+                <button class="ghost-btn">Abrir historial</button>
+              </div>
+              <div class="lote-stats">
+                <div>
+                  <small>Humedad</small>
+                  <strong>68%</strong>
+                </div>
+                <div>
+                  <small>Fotos</small>
+                  <strong>2 nuevas</strong>
+                </div>
+                <div>
+                  <small>Tareas</small>
+                  <strong>3 hoy</strong>
+                </div>
+              </div>
+              <div class="lote-progress">
+                <span>Salud del lote</span>
+                <div class="progress-bar"><span style="width:78%"></span></div>
+              </div>
+              <p>Revisión de hojas recomendada en la tarde. Sin alertas críticas.</p>
+              <div class="lote-actions">
+                <button class="btn">Crear tarea</button>
+                <button class="btn secondary">Ver mapa</button>
+              </div>
+            </article>
 
-            <div class="info-card">
-              <span class="pill red">Resiembra</span>
-              <h3>Lote D · Cacao joven</h3>
-              <p>Mortalidad temprana reportada. El sistema deberá generar tarea automática de reposición.</p>
-              <button class="btn">Programar tarea</button>
-            </div>
+            <article class="lote-card warning">
+              <div class="lote-head">
+                <div>
+                  <span class="pill yellow">Atención</span>
+                  <h3>Lote B · Mango</h3>
+                </div>
+                <button class="ghost-btn">Ver alerta</button>
+              </div>
+              <div class="lote-stats">
+                <div>
+                  <small>Humedad</small>
+                  <strong>41%</strong>
+                </div>
+                <div>
+                  <small>Alertas</small>
+                  <strong>2 activas</strong>
+                </div>
+                <div>
+                  <small>Fotos</small>
+                  <strong>Pendiente</strong>
+                </div>
+              </div>
+              <div class="lote-progress">
+                <span>Riesgo fitosanitario</span>
+                <div class="progress-bar"><span style="width:52%"></span></div>
+              </div>
+              <p>Priorizar revisión manual del suelo y registrar lluvia real antes de las 8:30.</p>
+              <div class="lote-actions">
+                <button class="btn">Solicitar fotos</button>
+                <button class="btn secondary">Abrir trazabilidad</button>
+              </div>
+            </article>
 
-            <div class="info-card">
-              <span class="pill">Ficha árbol</span>
-              <h3>Árbol MG-B-014</h3>
-              <p>Última foto hace 2 días. Hojas con leve amarillamiento. Revisión sugerida.</p>
-              <button class="btn">Ver árbol</button>
-            </div>
+            <article class="lote-card blue">
+              <div class="lote-head">
+                <div>
+                  <span class="pill blue">Revisar</span>
+                  <h3>Lote C · Café</h3>
+                </div>
+                <button class="ghost-btn">Subir fotos</button>
+              </div>
+              <div class="lote-stats">
+                <div>
+                  <small>Humedad</small>
+                  <strong>63%</strong>
+                </div>
+                <div>
+                  <small>Fotos</small>
+                  <strong>3 pendientes</strong>
+                </div>
+                <div>
+                  <small>Equipo</small>
+                  <strong>Daniel L.</strong>
+                </div>
+              </div>
+              <div class="lote-progress">
+                <span>Seguimiento</span>
+                <div class="progress-bar"><span style="width:64%"></span></div>
+              </div>
+              <p>Diagnóstico fitosanitario requiere fotos recientes de hojas y frutos.</p>
+              <div class="lote-actions">
+                <button class="btn">Asignar tarea</button>
+                <button class="btn secondary">Ver registros</button>
+              </div>
+            </article>
 
-            <div class="info-card">
-              <span class="pill blue">Próximo módulo</span>
-              <h3>Mapa por coordenadas</h3>
-              <p>Luego cada lote podrá verse con coordenadas, fotos, sensores y bitácora completa.</p>
-              <button class="btn">Diseñar mapa</button>
-            </div>
+            <article class="lote-card danger">
+              <div class="lote-head">
+                <div>
+                  <span class="pill red">Resiembra</span>
+                  <h3>Lote D · Cacao joven</h3>
+                </div>
+                <button class="ghost-btn">Programar tarea</button>
+              </div>
+              <div class="lote-stats">
+                <div>
+                  <small>Mortalidad</small>
+                  <strong>7%</strong>
+                </div>
+                <div>
+                  <small>Insumos</small>
+                  <strong>Listos</strong>
+                </div>
+                <div>
+                  <small>Cuadrilla</small>
+                  <strong>2 personas</strong>
+                </div>
+              </div>
+              <div class="lote-progress">
+                <span>Plan de resiembra</span>
+                <div class="progress-bar"><span style="width:38%"></span></div>
+              </div>
+              <p>Agendar reposición de plantas y registrar causa probable.</p>
+              <div class="lote-actions">
+                <button class="btn">Crear plan</button>
+                <button class="btn secondary">Abrir reporte</button>
+              </div>
+            </article>
           </div>
         </div>
       </section>
@@ -363,72 +484,201 @@
 
       <section id="equipo" class="page">
         <div class="panel">
-          <h2>Equipo de campo</h2>
-
-          <div class="cards-grid">
-            <div class="info-card">
-              <span class="pill">Jefe de cuadrilla</span>
-              <h3>Juan Carlos</h3>
-              <p>4 tareas asignadas hoy. Responsable de validar humedad y coordinar reporte de campo.</p>
-              <button class="btn">Ver tareas</button>
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Cuadrilla activa</span>
+              <h2>Equipo de campo</h2>
+              <p class="section-copy">Asignaciones, carga de trabajo y mensajería directa con el agente.</p>
             </div>
-
-            <div class="info-card">
-              <span class="pill yellow">1 atrasada</span>
-              <h3>María R.</h3>
-              <p>Trabajadora de campo. Debe registrar lluvia real y cerrar actividad pendiente.</p>
-              <button class="btn">Enviar mensaje</button>
+            <div class="lote-toolbar">
+              <button class="chip active">Hoy</button>
+              <button class="chip">En campo</button>
+              <button class="chip">Pendientes</button>
             </div>
+          </div>
 
-            <div class="info-card">
-              <span class="pill blue">Fotos pendientes</span>
-              <h3>Daniel L.</h3>
-              <p>Encargado de subir fotos de árboles con manchas en el Lote C.</p>
-              <button class="btn">Pedir fotos</button>
-            </div>
+          <div class="team-grid">
+            <article class="team-card">
+              <div class="team-head">
+                <div class="team-avatar">JC</div>
+                <div>
+                  <h3>Juan Carlos</h3>
+                  <span>Jefe de cuadrilla</span>
+                </div>
+                <span class="pill">En ruta</span>
+              </div>
+              <div class="team-stats">
+                <div>
+                  <small>Tareas</small>
+                  <strong>4</strong>
+                </div>
+                <div>
+                  <small>Prioridad</small>
+                  <strong>Alta</strong>
+                </div>
+                <div>
+                  <small>Zona</small>
+                  <strong>Lote B</strong>
+                </div>
+              </div>
+              <p>Coordina validación de humedad y control de fotos.</p>
+              <div class="team-actions">
+                <button class="btn">Ver tareas</button>
+                <button class="btn secondary">Enviar mensaje</button>
+              </div>
+            </article>
+
+            <article class="team-card warning">
+              <div class="team-head">
+                <div class="team-avatar">MR</div>
+                <div>
+                  <h3>María R.</h3>
+                  <span>Campo y registros</span>
+                </div>
+                <span class="pill yellow">1 atrasada</span>
+              </div>
+              <div class="team-stats">
+                <div>
+                  <small>Lluvia</small>
+                  <strong>Registro 4pm</strong>
+                </div>
+                <div>
+                  <small>Zona</small>
+                  <strong>Lote A</strong>
+                </div>
+                <div>
+                  <small>Estado</small>
+                  <strong>En campo</strong>
+                </div>
+              </div>
+              <p>Debe cerrar actividad de lluvia real y subir confirmación.</p>
+              <div class="team-actions">
+                <button class="btn">Marcar tarea</button>
+                <button class="btn secondary">Recordar</button>
+              </div>
+            </article>
+
+            <article class="team-card blue">
+              <div class="team-head">
+                <div class="team-avatar">DL</div>
+                <div>
+                  <h3>Daniel L.</h3>
+                  <span>Fotos fitosanitarias</span>
+                </div>
+                <span class="pill blue">Pendiente fotos</span>
+              </div>
+              <div class="team-stats">
+                <div>
+                  <small>Fotos</small>
+                  <strong>0/3</strong>
+                </div>
+                <div>
+                  <small>Zona</small>
+                  <strong>Lote C</strong>
+                </div>
+                <div>
+                  <small>Entrega</small>
+                  <strong>10:30</strong>
+                </div>
+              </div>
+              <p>Encargado de subir fotos con manchas para diagnóstico.</p>
+              <div class="team-actions">
+                <button class="btn">Pedir fotos</button>
+                <button class="btn secondary">Asignar apoyo</button>
+              </div>
+            </article>
           </div>
         </div>
       </section>
 
       <section id="clima" class="page">
         <div class="panel">
-          <h2>Clima y entorno</h2>
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Clima operativo</span>
+              <h2>Clima y entorno</h2>
+              <p class="section-copy">Pronóstico inmediato con señales de riego, lluvia y viento.</p>
+            </div>
+            <span class="pill blue">Actualizado 08:12</span>
+          </div>
 
-          <div class="cards-grid">
-            <div class="info-card">
+          <div class="clima-grid">
+            <div class="clima-hero">
+              <div class="clima-head">
+                <div>
+                  <span class="pill">Hoy</span>
+                  <h3>27°C · Parcialmente nublado</h3>
+                  <p>Ventana recomendada de aplicaciones: 9:00 a.m. a 1:30 p.m.</p>
+                </div>
+                <div class="clima-score">
+                  <strong>Riesgo lluvia</strong>
+                  <span>32%</span>
+                </div>
+              </div>
+              <div class="clima-strip">
+                <div class="clima-chip active">
+                  <strong>08:00</strong>
+                  <span>24°</span>
+                  <small>Nublado</small>
+                </div>
+                <div class="clima-chip">
+                  <strong>10:00</strong>
+                  <span>27°</span>
+                  <small>Viento NE</small>
+                </div>
+                <div class="clima-chip">
+                  <strong>12:00</strong>
+                  <span>29°</span>
+                  <small>Calor seco</small>
+                </div>
+                <div class="clima-chip">
+                  <strong>15:00</strong>
+                  <span>26°</span>
+                  <small>Posible lluvia</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="clima-card">
               <span class="pill">Temperatura</span>
               <h3>27°C</h3>
-              <p>Condición favorable para labores de mantenimiento y revisión en campo.</p>
+              <p>Condición favorable para mantenimiento y revisión.</p>
+              <div class="clima-mini"></div>
             </div>
 
-            <div class="info-card">
+            <div class="clima-card">
               <span class="pill blue">Humedad</span>
               <h3>64%</h3>
-              <p>Promedio general estable. El Lote B está por debajo del rango esperado.</p>
+              <p>Promedio general estable; Lote B requiere riego.</p>
+              <div class="clima-mini"></div>
             </div>
 
-            <div class="info-card">
+            <div class="clima-card">
               <span class="pill">Viento</span>
-              <h3>NE</h3>
-              <p>Dirección predominante noreste. Validar velocidad antes de aplicaciones.</p>
+              <h3>NE · 12 km/h</h3>
+              <p>Validar velocidad antes de aplicaciones foliares.</p>
+              <div class="clima-mini"></div>
             </div>
 
-            <div class="info-card">
+            <div class="clima-card">
               <span class="pill yellow">Lluvia</span>
               <h3>Posible tarde</h3>
-              <p>Se recomienda evitar aplicación foliar después de las 2:00 p.m.</p>
+              <p>Evitar aplicación después de las 2:00 p.m.</p>
+              <div class="clima-mini"></div>
             </div>
 
-            <div class="info-card">
+            <div class="clima-card">
               <span class="pill">Pluviometría</span>
               <h3>2 mm</h3>
-              <p>Registro manual demo. En la versión real se guardará con fecha, lote y usuario.</p>
+              <p>Registro manual demo con fecha y lote.</p>
+              <div class="clima-mini"></div>
             </div>
 
-            <div class="info-card">
+            <div class="clima-card">
               <span class="pill blue">Offline</span>
               <h3>Último pronóstico</h3>
-              <p>La app deberá mostrar la fecha de última actualización cuando no haya señal.</p>
+              <p>Mostrar fecha cuando no haya señal.</p>
+              <div class="clima-mini"></div>
             </div>
           </div>
         </div>
@@ -479,19 +729,44 @@
       </section>
 
       <section id="asistente" class="page">
-        <div class="panel">
-          <h2>Asistente LIA</h2>
+        <div class="panel assistant-shell">
+          <div class="assistant-head">
+            <div>
+              <span class="section-kicker">Agente operativo</span>
+              <h2>Asistente LIA</h2>
+              <p class="section-copy">
+                Centro de decisiones: contexto, tareas, alertas y recomendaciones con aprobación humana.
+              </p>
+            </div>
+            <div class="agent-badges">
+              <span class="pill blue">Modo agente</span>
+              <span class="pill">Humano en bucle</span>
+              <span class="pill yellow">Vigilancia activa</span>
+            </div>
+          </div>
 
-          <div class="hero" style="padding-top:0;margin-bottom:0;">
-            <aside class="command">
-              <div class="card-title">
-                <h2>Conversación demo</h2>
-                <span class="live">Simulado</span>
+          <div class="assistant-grid">
+            <aside class="command agent-console">
+              <div class="agent-toolbar">
+                <div class="agent-identity">
+                  <div class="agent-orb"></div>
+                  <div>
+                    <strong>LIA</strong>
+                    <span>Agente agrícola</span>
+                  </div>
+                </div>
+                <div class="agent-status">
+                  <span class="status-dot"></span>
+                  Listo para consultar
+                </div>
               </div>
 
               <div class="ai-message" id="bigAiMessage">
-                Hola. Soy una simulación del asistente LIA. Todavía no estoy conectado a OpenCloud,
-                pero este espacio será el centro de decisiones y explicación de la finca.
+                <div class="ai-label">LIA</div>
+                <div class="ai-body">
+                  Soy el asistente operativo de la finca. Pregunta y devolveré decisiones con contexto,
+                  evidencias y un plan sugerido para aprobación.
+                </div>
               </div>
 
               <div class="quick-prompts">
@@ -505,44 +780,77 @@
                 <input id="bigChatInput" placeholder="Escribe una pregunta para LIA..." />
                 <button class="btn" onclick="sendBigQuestion()">Enviar</button>
               </div>
+
+              <div class="agent-foot">
+                <span class="pill">Memoria: 7 dias</span>
+                <span class="pill blue">Modelo: OpenClaw</span>
+                <span class="pill yellow">Aprobacion requerida</span>
+              </div>
             </aside>
 
-            <div class="command">
-              <div class="card-title">
-                <h2>Qué hará después</h2>
-                <span class="pill yellow">Humano aprueba</span>
+            <div class="agent-stack">
+              <div class="agent-panel">
+                <h3>Contexto activo</h3>
+                <div class="agent-list">
+                  <div class="agent-item">
+                    <strong>Clima</strong>
+                    <span>Posible lluvia tarde, viento NE moderado.</span>
+                  </div>
+                  <div class="agent-item">
+                    <strong>Lote B</strong>
+                    <span>Humedad baja y alerta amarilla en mango.</span>
+                  </div>
+                  <div class="agent-item">
+                    <strong>Fotos pendientes</strong>
+                    <span>Diagnostico fitosanitario en Lote C.</span>
+                  </div>
+                </div>
               </div>
 
-              <div class="task-list">
-                <div class="task">
-                  <div class="task-icon">☁</div>
-                  <div>
-                    <strong>Leer clima y variables</strong>
-                    <span>Temperatura, lluvia, viento, humedad y pronóstico.</span>
+              <div class="agent-panel">
+                <h3>Acciones sugeridas</h3>
+                <div class="agent-actions">
+                  <div class="agent-action">
+                    <span class="pill yellow">Alta</span>
+                    <div>
+                      <strong>Verificar humedad Lote B</strong>
+                      <span>Validacion manual antes de riego o fertilizacion.</span>
+                    </div>
+                  </div>
+                  <div class="agent-action">
+                    <span class="pill blue">Media</span>
+                    <div>
+                      <strong>Solicitar fotos Lote C</strong>
+                      <span>Fotos de hojas para diagnostico de manchas.</span>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div class="task">
-                  <div class="task-icon">🌱</div>
-                  <div>
-                    <strong>Entender lotes y árboles</strong>
-                    <span>Historial, fotos, labores, insumos y cosecha.</span>
-                  </div>
+              <div class="agent-panel">
+                <h3>Herramientas conectadas</h3>
+                <div class="agent-tools">
+                  <span class="pill">Sensores</span>
+                  <span class="pill blue">Clima</span>
+                  <span class="pill">Trazabilidad</span>
+                  <span class="pill yellow">WhatsApp</span>
                 </div>
+              </div>
 
-                <div class="task">
-                  <div class="task-icon">📲</div>
-                  <div>
-                    <strong>Enviar instrucciones</strong>
-                    <span>Mensajes diarios por WhatsApp para trabajadores.</span>
+              <div class="agent-panel">
+                <h3>Rastreo de decisiones</h3>
+                <div class="agent-timeline">
+                  <div class="agent-event">
+                    <span>08:10</span>
+                    <strong>Lectura de humedad recibida</strong>
                   </div>
-                </div>
-
-                <div class="task">
-                  <div class="task-icon">✓</div>
-                  <div>
-                    <strong>Pedir aprobación humana</strong>
-                    <span>Especialmente en químicos, cosecha o decisiones críticas.</span>
+                  <div class="agent-event">
+                    <span>08:12</span>
+                    <strong>Riesgo medio calculado</strong>
+                  </div>
+                  <div class="agent-event">
+                    <span>08:14</span>
+                    <strong>Plan propuesto a supervisor</strong>
                   </div>
                 </div>
               </div>
