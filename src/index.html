@@ -1,864 +1,201 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LIA Agromyss | Prototipo 3.1</title>
+  <title>Waiker · Panel de finca Agromyss</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
 
   <link rel="stylesheet" href="css/styles.css" />
-  <script src="js/main.js" defer></script>
 </head>
 
 <body>
-  <div class="grain"></div>
+  <a class="salto" href="#wk-produccion">Saltar al contenido</a>
 
-  <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-logo">AGROMYSS</div>
-        <div class="brand-copy">
-          <strong>LIA</strong>
-          <span>Centro agrícola inteligente</span>
-        </div>
+  <div class="app">
+
+    <!-- ══════════ barra lateral ══════════ -->
+    <aside class="lateral" id="lateral">
+      <div class="marca">
+        <span class="marca-logo">W</span>
+        <span class="marca-nombre">Waiker</span>
+        <button class="lateral-cerrar" type="button" data-accion="cerrar-menu" aria-label="Cerrar menú">×</button>
       </div>
 
-      <nav class="nav">
-        <button class="active" data-page="inicio">Inicio</button>
-        <button data-page="lotes">Lotes</button>
-        <button data-page="sensores">Sensores</button>
-        <button data-page="equipo">Equipo</button>
-        <button data-page="clima">Clima</button>
-        <button data-page="trazabilidad">Trazabilidad</button>
-        <button data-page="asistente">Asistente</button>
-      </nav>
+      <nav class="nav" id="wk-nav" aria-label="Secciones del panel"></nav>
 
-      <div class="user">
-        <div class="avatar">SG</div>
-        <div>
-          <strong>Sebastián</strong>
-          <span>Administrador finca</span>
+      <div class="autonomia" id="wk-autonomia"></div>
+    </aside>
+
+    <div class="lateral-fondo" data-accion="cerrar-menu" hidden></div>
+
+    <!-- ══════════ contenido ══════════ -->
+    <main class="principal">
+
+      <header class="cabecera">
+        <button class="menu-btn" type="button" data-accion="abrir-menu" aria-label="Abrir menú">☰</button>
+
+        <div class="finca">
+          <div class="finca-nombre" id="wk-finca-nombre"></div>
+          <div class="finca-detalle" id="wk-finca-detalle"></div>
         </div>
+
+        <div class="grupo-btn" id="wk-cultivos" role="group" aria-label="Filtrar por cultivo"></div>
+        <div class="grupo-btn" id="wk-rangos" role="group" aria-label="Rango de tiempo"></div>
+
+        <div class="kpis" id="wk-kpis"></div>
+
+        <div class="perfil" id="wk-perfil"></div>
+      </header>
+
+      <!-- aviso de datos simulados / estado de conexión -->
+      <div class="aviso" id="wk-aviso" role="status"></div>
+
+      <div class="rejilla">
+
+        <!-- ── recolección ── -->
+        <section class="panel col-6" id="wk-produccion">
+          <div class="panel-cab">
+            <div>
+              <h3>Recolección</h3>
+              <p class="sub">kg por día · <span id="wk-rango-label"></span></p>
+            </div>
+            <div class="panel-cab-dcha" id="wk-produccion-leyenda"></div>
+          </div>
+          <div id="wk-produccion-svg"></div>
+        </section>
+
+        <!-- ── riego / jornales ── -->
+        <section class="col-3 apilado" id="wk-minis"></section>
+
+        <!-- ── mapa de lotes ── -->
+        <section class="panel col-3" id="wk-mapa">
+          <div class="panel-cab">
+            <h3>Lotes</h3>
+            <span class="sub ml-auto">humedad de suelo · toca un lote</span>
+          </div>
+          <div id="wk-mapa-svg"></div>
+          <div class="leyenda">
+            <span><i class="punto" style="background:#4b6b3a"></i>Óptima</span>
+            <span><i class="punto" style="background:#c98b3a"></i>Límite</span>
+            <span><i class="punto" style="background:#a8552a"></i>Saturada</span>
+          </div>
+        </section>
+
+        <!-- ── detalle del lote ── -->
+        <section class="panel panel-alt col-3" id="wk-lote"></section>
+
+        <!-- ── acumulado + anillos ── -->
+        <section class="panel col-5 acumulado" id="wk-acumulado"></section>
+
+        <!-- ── plan del día ── -->
+        <section class="panel col-4" id="wk-plan">
+          <div class="panel-cab">
+            <h3>Plan del día</h3>
+            <span class="mono sub ml-auto" id="wk-plan-resumen"></span>
+          </div>
+          <div class="barra-plan"><span id="wk-plan-barra"></span></div>
+          <div class="tareas" id="wk-plan-tareas"></div>
+        </section>
+
+        <!-- ── propuestas del agente ── -->
+        <section class="panel col-3" id="wk-openclaw">
+          <div class="panel-cab">
+            <h3>Propuestas</h3>
+            <span class="sub ml-auto" id="wk-openclaw-estado"></span>
+          </div>
+          <div class="propuestas" id="wk-openclaw-lista"></div>
+        </section>
+
+        <!-- ── cuentas del mes ── -->
+        <section class="panel col-5" id="wk-cuentas">
+          <div class="panel-cab">
+            <h3>Cuentas del mes</h3>
+            <span class="mono ml-auto" id="wk-cuentas-neto"></span>
+          </div>
+          <div class="cuentas" id="wk-cuentas-lista"></div>
+          <div class="cuentas-barra" id="wk-cuentas-barra"></div>
+        </section>
+
+        <!-- ── asistente LIA ── -->
+        <section class="panel col-4 chat" id="wk-asistente">
+          <div class="panel-cab">
+            <h3>Asistente LIA</h3>
+            <span class="sub ml-auto" id="wk-chat-estado"></span>
+          </div>
+          <div class="chat-mensajes" id="wk-chat-mensajes" aria-live="polite"></div>
+          <form class="chat-entrada" id="wk-chat-form" autocomplete="off">
+            <label class="oculto" for="wk-chat-input">Pregunta para el asistente</label>
+            <input id="wk-chat-input" placeholder="Pregunta por un lote, una alerta o el plan…" />
+            <button class="btn" type="submit" id="wk-chat-enviar">Enviar</button>
+          </form>
+        </section>
+
+        <!-- ── sensores ── -->
+        <section class="panel col-6" id="wk-sensores">
+          <div class="panel-cab">
+            <h3>Sensores</h3>
+            <span class="sub" id="wk-sensores-resumen"></span>
+          </div>
+          <div class="sensores">
+            <div class="sensores-tabla">
+              <div class="sensores-cab">
+                <span>id</span><span>ubicación</span>
+                <span class="dcha">valor</span><span class="dcha">bat.</span><span class="dcha">visto</span>
+              </div>
+              <div id="wk-sensores-lista"></div>
+            </div>
+            <div class="sensor-detalle" id="wk-sensor-detalle"></div>
+          </div>
+        </section>
+
+        <!-- ── clima ── -->
+        <section class="panel col-6" id="wk-clima">
+          <div class="panel-cab">
+            <h3>Clima 7 días</h3>
+            <span class="sub ml-auto">temperatura °C · lluvia mm</span>
+          </div>
+          <div id="wk-clima-svg"></div>
+        </section>
+
+        <!-- ── merma ── -->
+        <section class="panel col-4" id="wk-merma">
+          <div class="panel-cab">
+            <h3>Merma por lote</h3>
+            <span class="sub ml-auto">% del corte</span>
+          </div>
+          <div id="wk-merma-svg"></div>
+        </section>
+
+        <!-- ── avance de labores ── -->
+        <section class="panel col-4" id="wk-labores">
+          <div class="panel-cab">
+            <h3>Avance de labores</h3>
+            <span class="sub ml-auto">campaña</span>
+          </div>
+          <div class="labores" id="wk-labores-lista"></div>
+        </section>
+
+        <!-- ── cuadrilla ── -->
+        <section class="panel col-4" id="wk-cuadrilla">
+          <div class="panel-cab">
+            <h3>Cuadrilla</h3>
+            <span class="sub ml-auto">asistencia · kg/jornal</span>
+          </div>
+          <div class="cuadrilla" id="wk-cuadrilla-lista"></div>
+        </section>
+
       </div>
-    </header>
-
-    <main>
-      <section id="inicio" class="page active">
-        <div class="hero">
-          <div class="hero-main">
-            <div class="eyebrow">
-              <span class="dot"></span>
-              Prototipo 3.1 · Identidad Agromyss
-            </div>
-
-            <div class="hero-center">
-              <h1>Panel operativo</h1>
-
-              <p>
-                Vista compacta de clima, lotes, alertas y tareas en un solo lugar.
-              </p>
-
-              <div class="actions">
-                <button class="btn light" onclick="openPage('asistente')">Preguntar a LIA</button>
-                <button class="btn secondary" onclick="openPage('trazabilidad')">Ver trazabilidad</button>
-                <button class="btn secondary" onclick="openPage('lotes')">Explorar lotes</button>
-              </div>
-            </div>
-          </div>
-
-          <aside class="command">
-            <div class="card-title">
-              <h2>Comando LIA</h2>
-              <span class="live">En línea</span>
-            </div>
-
-            <div class="ai-message" id="aiMessage">
-              <strong>Resumen de hoy:</strong><br>
-              El Lote B de mango necesita revisión por humedad baja. Hay posible lluvia en la tarde,
-              por lo que no conviene programar aplicación foliar después de las 2:00 p.m.
-            </div>
-
-            <div class="quick-prompts">
-              <button class="prompt" onclick="askPreset('hoy')">¿Qué hacemos hoy?</button>
-              <button class="prompt" onclick="askPreset('riesgos')">Riesgos activos</button>
-              <button class="prompt" onclick="askPreset('lote')">Estado Lote B</button>
-              <button class="prompt" onclick="askPreset('whatsapp')">Mensaje WhatsApp</button>
-            </div>
-
-            <div class="chatbar">
-              <input id="chatInput" placeholder="Pregúntale algo a LIA..." />
-              <button class="btn" onclick="sendQuestion()">Enviar</button>
-            </div>
-          </aside>
-        </div>
-
-        <div class="metrics">
-          <div class="metric">
-            <div class="metric-icon">💧</div>
-            <div>
-              <small>Humedad suelo</small>
-                <strong id="homeMoisture">64%</strong>
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-icon">🌡</div>
-            <div>
-              <small>Temperatura</small>
-                <strong id="homeTemperature">27°C</strong>
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-icon">🌬</div>
-            <div>
-              <small>Dirección viento</small>
-                <strong id="homeWind">NE</strong>
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-icon">☑</div>
-            <div>
-              <small>Tareas activas</small>
-                <strong id="homeTasks">12</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="bento">
-          <div class="tile large map-tile">
-            <div class="card-title">
-              <h3>Mapa vivo de la finca</h3>
-              <span class="pill blue">Mind map</span>
-            </div>
-
-            <div class="map-board">
-              <div class="map-center">
-                <strong>Gateway central</strong>
-                <span>Conectividad 98% · 18 s</span>
-              </div>
-              <div class="map-grid">
-                <div class="map-card">
-                  <span class="pill">Estable</span>
-                  <h4>Lote A · Cacao</h4>
-                  <p>Humedad 68% · 1.200 plantas</p>
-                </div>
-                <div class="map-card warning">
-                  <span class="pill yellow">Atención</span>
-                  <h4>Lote B · Mango</h4>
-                  <p>Humedad 41% · alerta activa</p>
-                </div>
-                <div class="map-card blue">
-                  <span class="pill blue">Fotos</span>
-                  <h4>Lote C · Café</h4>
-                  <p>3 fotos pendientes · diagnóstico</p>
-                </div>
-                <div class="map-card danger">
-                  <span class="pill red">Resiembra</span>
-                  <h4>Lote D · Cacao</h4>
-                  <p>Mortalidad 7% · plan en curso</p>
-                </div>
-                <div class="map-card">
-                  <span class="pill">Vivero</span>
-                  <h4>Zona de plántulas</h4>
-                  <p>Revisión de sombra a las 3:00 p.m.</p>
-                </div>
-                <div class="map-card blue">
-                  <span class="pill blue">Hídrica</span>
-                  <h4>Zona hídrica</h4>
-                  <p>Lluvia ligera · 2 mm</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div class="tile">
-            <small>Humedad promedio</small>
-            <div class="big-number" id="homeAverageMoisture">64%</div>
-            <p class="muted">Lectura estable, con excepción del Lote B.</p>
-          </div>
-
-          <div class="tile">
-            <small>Temperatura</small>
-            <div class="big-number" id="homeAverageTemperature">27°</div>
-            <p class="muted">Condición adecuada para labores de mantenimiento.</p>
-          </div>
-
-          <div class="tile tall risk-tile">
-            <div class="card-title">
-              <h3>Riesgo fitosanitario</h3>
-              <span class="pill yellow">Medio</span>
-            </div>
-
-            <div class="rings">
-              <strong>72</strong>
-            </div>
-
-            <p class="muted">
-              Índice demo calculado con humedad, temperatura, fotos pendientes y novedades MIPE.
-            </p>
-          </div>
-
-          <div class="tile tall">
-            <div class="card-title">
-              <h3>Plan del día</h3>
-              <span class="pill">12 tareas</span>
-            </div>
-
-            <div class="task-list">
-              <div class="task">
-                <div class="task-icon">💧</div>
-                <div>
-                  <strong>Revisar humedad en Lote B</strong>
-                  <span>Jefe de cuadrilla · 7:30 a.m.</span>
-                </div>
-                <span class="pill yellow">Alta</span>
-              </div>
-
-              <div class="task">
-                <div class="task-icon">📷</div>
-                <div>
-                  <strong>Fotos de árboles con manchas</strong>
-                  <span>Trabajador de campo · 9:00 a.m.</span>
-                </div>
-                <span class="pill blue">Media</span>
-              </div>
-
-              <div class="task">
-                <div class="task-icon">🌧</div>
-                <div>
-                  <strong>Registrar lluvia real</strong>
-                  <span>Campo · 4:00 p.m.</span>
-                </div>
-                <span class="pill">Normal</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="tile wide">
-            <div class="card-title">
-              <h3>Alertas importantes</h3>
-              <span class="pill red">2 críticas</span>
-            </div>
-
-            <div class="task-list">
-              <div class="task">
-                <div class="task-icon">⚠</div>
-                <div>
-                  <strong>Humedad baja en mango</strong>
-                  <span>Validar suelo antes de decidir riego o fertilización.</span>
-                </div>
-                <span class="pill yellow">Lote B</span>
-              </div>
-
-              <div class="task">
-                <div class="task-icon">☂</div>
-                <div>
-                  <strong>Posible lluvia en la tarde</strong>
-                  <span>Evitar aplicación foliar después de las 2:00 p.m.</span>
-                </div>
-                <span class="pill blue">Clima</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="lotes" class="page">
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <span class="section-kicker">Mapa operativo</span>
-              <h2>Lotes y árboles</h2>
-              <p class="section-copy">
-                Vista interactiva por lote con estado, humedad, fotos y tareas sugeridas por el agente.
-              </p>
-            </div>
-            <div class="lote-toolbar">
-              <button class="chip active">Todos</button>
-              <button class="chip">Alertas</button>
-              <button class="chip">Fotos</button>
-              <button class="chip">Riego</button>
-            </div>
-          </div>
-
-          <div class="lotes-grid">
-            <article class="lote-card">
-              <div class="lote-head">
-                <div>
-                  <span class="pill">Estable</span>
-                  <h3>Lote A · Cacao</h3>
-                </div>
-                <button class="ghost-btn">Abrir historial</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Humedad</small>
-                  <strong>68%</strong>
-                </div>
-                <div>
-                  <small>Fotos</small>
-                  <strong>2 nuevas</strong>
-                </div>
-                <div>
-                  <small>Tareas</small>
-                  <strong>3 hoy</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Salud del lote</span>
-                <div class="progress-bar"><span style="width:78%"></span></div>
-              </div>
-              <p>Revisión de hojas recomendada en la tarde. Sin alertas críticas.</p>
-              <div class="lote-actions">
-                <button class="btn">Crear tarea</button>
-                <button class="btn secondary">Ver mapa</button>
-              </div>
-            </article>
-
-            <article class="lote-card warning">
-              <div class="lote-head">
-                <div>
-                  <span class="pill yellow">Atención</span>
-                  <h3>Lote B · Mango</h3>
-                </div>
-                <button class="ghost-btn">Ver alerta</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Humedad</small>
-                  <strong>41%</strong>
-                </div>
-                <div>
-                  <small>Alertas</small>
-                  <strong>2 activas</strong>
-                </div>
-                <div>
-                  <small>Fotos</small>
-                  <strong>Pendiente</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Riesgo fitosanitario</span>
-                <div class="progress-bar"><span style="width:52%"></span></div>
-              </div>
-              <p>Priorizar revisión manual del suelo y registrar lluvia real antes de las 8:30.</p>
-              <div class="lote-actions">
-                <button class="btn">Solicitar fotos</button>
-                <button class="btn secondary">Abrir trazabilidad</button>
-              </div>
-            </article>
-
-            <article class="lote-card blue">
-              <div class="lote-head">
-                <div>
-                  <span class="pill blue">Revisar</span>
-                  <h3>Lote C · Café</h3>
-                </div>
-                <button class="ghost-btn">Subir fotos</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Humedad</small>
-                  <strong>63%</strong>
-                </div>
-                <div>
-                  <small>Fotos</small>
-                  <strong>3 pendientes</strong>
-                </div>
-                <div>
-                  <small>Equipo</small>
-                  <strong>Daniel L.</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Seguimiento</span>
-                <div class="progress-bar"><span style="width:64%"></span></div>
-              </div>
-              <p>Diagnóstico fitosanitario requiere fotos recientes de hojas y frutos.</p>
-              <div class="lote-actions">
-                <button class="btn">Asignar tarea</button>
-                <button class="btn secondary">Ver registros</button>
-              </div>
-            </article>
-
-            <article class="lote-card danger">
-              <div class="lote-head">
-                <div>
-                  <span class="pill red">Resiembra</span>
-                  <h3>Lote D · Cacao joven</h3>
-                </div>
-                <button class="ghost-btn">Programar tarea</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Mortalidad</small>
-                  <strong>7%</strong>
-                </div>
-                <div>
-                  <small>Insumos</small>
-                  <strong>Listos</strong>
-                </div>
-                <div>
-                  <small>Cuadrilla</small>
-                  <strong>2 personas</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Plan de resiembra</span>
-                <div class="progress-bar"><span style="width:38%"></span></div>
-              </div>
-              <p>Agendar reposición de plantas y registrar causa probable.</p>
-              <div class="lote-actions">
-                <button class="btn">Crear plan</button>
-                <button class="btn secondary">Abrir reporte</button>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="sensores" class="page">
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <span class="section-kicker">Datos simulados</span>
-              <h2>Sensores y telemetría</h2>
-              <p class="section-copy">
-                Una vista de ejemplo para mostrar cómo llegan los datos desde sensores de campo,
-                pasan por un gateway y aparecen en el tablero con alertas y tendencias.
-              </p>
-            </div>
-            <span class="pill blue">Actualización cada 30 s</span>
-          </div>
-
-          <div class="sensor-summary">
-            <div class="info-card sensor-card" id="sensorCardOne"></div>
-            <div class="info-card sensor-card" id="sensorCardTwo"></div>
-            <div class="info-card sensor-card" id="sensorCardThree"></div>
-            <div class="info-card sensor-card" id="sensorCardFour"></div>
-          </div>
-
-          <div class="trend-card">
-            <div class="card-title">
-              <div>
-                <h3>Tendencia de 24 horas</h3>
-                <p class="section-copy" style="margin:8px 0 0;">Una mini gráfica para mostrar variación de humedad y temperatura durante el día.</p>
-              </div>
-              <span class="pill blue">Datos vivos</span>
-            </div>
-
-            <svg id="sensorTrendChart" class="demo-chart" viewBox="0 0 860 240" preserveAspectRatio="none" aria-label="Tendencia simulada de sensores"></svg>
-          </div>
-
-          <div class="sensor-grid">
-            <div class="info-card sensor-stream">
-              <div class="card-title">
-                <h3>Flujo de datos</h3>
-                <span class="pill">Esquema demo</span>
-              </div>
-
-              <div class="pipeline" id="sensorPipeline"></div>
-            </div>
-
-            <div class="info-card sensor-stream">
-              <div class="card-title">
-                <h3>Lecturas recientes</h3>
-                <span class="pill blue">Fake feed</span>
-              </div>
-
-              <div class="reading-list" id="readingList"></div>
-            </div>
-
-            <div class="info-card sensor-stream wide-card">
-              <div class="card-title">
-                <h3>Qué verá la empresa</h3>
-                <span class="pill yellow">Demo comercial</span>
-              </div>
-
-              <div class="feature-list" id="featureList"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="equipo" class="page">
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <span class="section-kicker">Cuadrilla activa</span>
-              <h2>Equipo de campo</h2>
-              <p class="section-copy">Asignaciones, carga de trabajo y mensajería directa con el agente.</p>
-            </div>
-            <div class="lote-toolbar">
-              <button class="chip active">Hoy</button>
-              <button class="chip">En campo</button>
-              <button class="chip">Pendientes</button>
-            </div>
-          </div>
-
-          <div class="team-grid">
-            <article class="team-card">
-              <div class="team-head">
-                <div class="team-avatar">JC</div>
-                <div>
-                  <h3>Juan Carlos</h3>
-                  <span>Jefe de cuadrilla</span>
-                </div>
-                <span class="pill">En ruta</span>
-              </div>
-              <div class="team-stats">
-                <div>
-                  <small>Tareas</small>
-                  <strong>4</strong>
-                </div>
-                <div>
-                  <small>Prioridad</small>
-                  <strong>Alta</strong>
-                </div>
-                <div>
-                  <small>Zona</small>
-                  <strong>Lote B</strong>
-                </div>
-              </div>
-              <p>Coordina validación de humedad y control de fotos.</p>
-              <div class="team-actions">
-                <button class="btn">Ver tareas</button>
-                <button class="btn secondary">Enviar mensaje</button>
-              </div>
-            </article>
-
-            <article class="team-card warning">
-              <div class="team-head">
-                <div class="team-avatar">MR</div>
-                <div>
-                  <h3>María R.</h3>
-                  <span>Campo y registros</span>
-                </div>
-                <span class="pill yellow">1 atrasada</span>
-              </div>
-              <div class="team-stats">
-                <div>
-                  <small>Lluvia</small>
-                  <strong>Registro 4pm</strong>
-                </div>
-                <div>
-                  <small>Zona</small>
-                  <strong>Lote A</strong>
-                </div>
-                <div>
-                  <small>Estado</small>
-                  <strong>En campo</strong>
-                </div>
-              </div>
-              <p>Debe cerrar actividad de lluvia real y subir confirmación.</p>
-              <div class="team-actions">
-                <button class="btn">Marcar tarea</button>
-                <button class="btn secondary">Recordar</button>
-              </div>
-            </article>
-
-            <article class="team-card blue">
-              <div class="team-head">
-                <div class="team-avatar">DL</div>
-                <div>
-                  <h3>Daniel L.</h3>
-                  <span>Fotos fitosanitarias</span>
-                </div>
-                <span class="pill blue">Pendiente fotos</span>
-              </div>
-              <div class="team-stats">
-                <div>
-                  <small>Fotos</small>
-                  <strong>0/3</strong>
-                </div>
-                <div>
-                  <small>Zona</small>
-                  <strong>Lote C</strong>
-                </div>
-                <div>
-                  <small>Entrega</small>
-                  <strong>10:30</strong>
-                </div>
-              </div>
-              <p>Encargado de subir fotos con manchas para diagnóstico.</p>
-              <div class="team-actions">
-                <button class="btn">Pedir fotos</button>
-                <button class="btn secondary">Asignar apoyo</button>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
-      <section id="clima" class="page">
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <span class="section-kicker">Clima operativo</span>
-              <h2>Clima y entorno</h2>
-              <p class="section-copy">Pronóstico inmediato con señales de riego, lluvia y viento.</p>
-            </div>
-            <span class="pill blue">Actualizado 08:12</span>
-          </div>
-
-          <div class="clima-grid">
-            <div class="clima-hero">
-              <div class="clima-head">
-                <div>
-                  <span class="pill">Hoy</span>
-                  <h3>27°C · Parcialmente nublado</h3>
-                  <p>Ventana recomendada de aplicaciones: 9:00 a.m. a 1:30 p.m.</p>
-                </div>
-                <div class="clima-score">
-                  <strong>Riesgo lluvia</strong>
-                  <span>32%</span>
-                </div>
-              </div>
-              <div class="clima-strip">
-                <div class="clima-chip active">
-                  <strong>08:00</strong>
-                  <span>24°</span>
-                  <small>Nublado</small>
-                </div>
-                <div class="clima-chip">
-                  <strong>10:00</strong>
-                  <span>27°</span>
-                  <small>Viento NE</small>
-                </div>
-                <div class="clima-chip">
-                  <strong>12:00</strong>
-                  <span>29°</span>
-                  <small>Calor seco</small>
-                </div>
-                <div class="clima-chip">
-                  <strong>15:00</strong>
-                  <span>26°</span>
-                  <small>Posible lluvia</small>
-                </div>
-              </div>
-            </div>
-
-            <div class="clima-card">
-              <span class="pill">Temperatura</span>
-              <h3>27°C</h3>
-              <p>Condición favorable para mantenimiento y revisión.</p>
-              <div class="clima-mini"></div>
-            </div>
-
-            <div class="clima-card">
-              <span class="pill blue">Humedad</span>
-              <h3>64%</h3>
-              <p>Promedio general estable; Lote B requiere riego.</p>
-              <div class="clima-mini"></div>
-            </div>
-
-            <div class="clima-card">
-              <span class="pill">Viento</span>
-              <h3>NE · 12 km/h</h3>
-              <p>Validar velocidad antes de aplicaciones foliares.</p>
-              <div class="clima-mini"></div>
-            </div>
-
-            <div class="clima-card">
-              <span class="pill yellow">Lluvia</span>
-              <h3>Posible tarde</h3>
-              <p>Evitar aplicación después de las 2:00 p.m.</p>
-              <div class="clima-mini"></div>
-            </div>
-
-            <div class="clima-card">
-              <span class="pill">Pluviometría</span>
-              <h3>2 mm</h3>
-              <p>Registro manual demo con fecha y lote.</p>
-              <div class="clima-mini"></div>
-            </div>
-
-            <div class="clima-card">
-              <span class="pill blue">Offline</span>
-              <h3>Último pronóstico</h3>
-              <p>Mostrar fecha cuando no haya señal.</p>
-              <div class="clima-mini"></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="trazabilidad" class="page">
-        <div class="panel">
-          <h2>Trazabilidad del Lote A</h2>
-
-          <div class="timeline">
-            <div class="step">
-              <div class="step-number">01</div>
-              <div>
-                <h3>Registro del lote</h3>
-                <p>Área, cultivo, tipo de siembra, material vegetal y responsable.</p>
-              </div>
-              <span class="pill">Completado</span>
-            </div>
-
-            <div class="step">
-              <div class="step-number">02</div>
-              <div>
-                <h3>Análisis de suelo</h3>
-                <p>Documento cargado y futura recomendación de IA sobre enmiendas o fertilización.</p>
-              </div>
-              <span class="pill blue">Documento</span>
-            </div>
-
-            <div class="step">
-              <div class="step-number">03</div>
-              <div>
-                <h3>Mantenimiento</h3>
-                <p>Fertilización, podas, labores culturales, MIPE y aplicaciones fitosanitarias.</p>
-              </div>
-              <span class="pill yellow">Activo</span>
-            </div>
-
-            <div class="step">
-              <div class="step-number">04</div>
-              <div>
-                <h3>Cosecha</h3>
-                <p>Pesaje, clasificación, merma, calidad y generación del código de trazabilidad.</p>
-              </div>
-              <span class="pill">Próximo</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section id="asistente" class="page">
-        <div class="panel assistant-shell">
-          <div class="assistant-head">
-            <div>
-              <span class="section-kicker">Agente operativo</span>
-              <h2>Asistente LIA</h2>
-              <p class="section-copy">
-                Centro de decisiones: contexto, tareas, alertas y recomendaciones con aprobación humana.
-              </p>
-            </div>
-            <div class="agent-badges">
-              <span class="pill blue">Modo agente</span>
-              <span class="pill">Humano en bucle</span>
-              <span class="pill yellow">Vigilancia activa</span>
-            </div>
-          </div>
-
-          <div class="assistant-grid">
-            <aside class="command agent-console">
-              <div class="agent-toolbar">
-                <div class="agent-identity">
-                  <div class="agent-orb"></div>
-                  <div>
-                    <strong>LIA</strong>
-                    <span>Agente agrícola</span>
-                  </div>
-                </div>
-                <div class="agent-status">
-                  <span class="status-dot"></span>
-                  Listo para consultar
-                </div>
-              </div>
-
-              <div class="ai-message" id="bigAiMessage">
-                <div class="ai-label">LIA</div>
-                <div class="ai-body">
-                  Soy el asistente operativo de la finca. Pregunta y devolveré decisiones con contexto,
-                  evidencias y un plan sugerido para aprobación.
-                </div>
-              </div>
-
-              <div class="quick-prompts">
-                <button class="prompt" onclick="askBigPreset('plan')">Plan de mañana</button>
-                <button class="prompt" onclick="askBigPreset('mango')">Analizar mango</button>
-                <button class="prompt" onclick="askBigPreset('trabajadores')">Asignar trabajadores</button>
-                <button class="prompt" onclick="askBigPreset('resumen')">Resumen ejecutivo</button>
-              </div>
-
-              <div class="chatbar">
-                <input id="bigChatInput" placeholder="Escribe una pregunta para LIA..." />
-                <button class="btn" onclick="sendBigQuestion()">Enviar</button>
-              </div>
-
-              <div class="agent-foot">
-                <span class="pill">Memoria: 7 dias</span>
-                <span class="pill blue">Modelo: OpenClaw</span>
-                <span class="pill yellow">Aprobacion requerida</span>
-              </div>
-            </aside>
-
-            <div class="agent-stack">
-              <div class="agent-panel">
-                <h3>Contexto activo</h3>
-                <div class="agent-list">
-                  <div class="agent-item">
-                    <strong>Clima</strong>
-                    <span>Posible lluvia tarde, viento NE moderado.</span>
-                  </div>
-                  <div class="agent-item">
-                    <strong>Lote B</strong>
-                    <span>Humedad baja y alerta amarilla en mango.</span>
-                  </div>
-                  <div class="agent-item">
-                    <strong>Fotos pendientes</strong>
-                    <span>Diagnostico fitosanitario en Lote C.</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="agent-panel">
-                <h3>Acciones sugeridas</h3>
-                <div class="agent-actions">
-                  <div class="agent-action">
-                    <span class="pill yellow">Alta</span>
-                    <div>
-                      <strong>Verificar humedad Lote B</strong>
-                      <span>Validacion manual antes de riego o fertilizacion.</span>
-                    </div>
-                  </div>
-                  <div class="agent-action">
-                    <span class="pill blue">Media</span>
-                    <div>
-                      <strong>Solicitar fotos Lote C</strong>
-                      <span>Fotos de hojas para diagnostico de manchas.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="agent-panel">
-                <h3>Herramientas conectadas</h3>
-                <div class="agent-tools">
-                  <span class="pill">Sensores</span>
-                  <span class="pill blue">Clima</span>
-                  <span class="pill">Trazabilidad</span>
-                  <span class="pill yellow">WhatsApp</span>
-                </div>
-              </div>
-
-              <div class="agent-panel">
-                <h3>Rastreo de decisiones</h3>
-                <div class="agent-timeline">
-                  <div class="agent-event">
-                    <span>08:10</span>
-                    <strong>Lectura de humedad recibida</strong>
-                  </div>
-                  <div class="agent-event">
-                    <span>08:12</span>
-                    <strong>Riesgo medio calculado</strong>
-                  </div>
-                  <div class="agent-event">
-                    <span>08:14</span>
-                    <strong>Plan propuesto a supervisor</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
     </main>
   </div>
+
+  <script type="module" src="js/main.js"></script>
 </body>
+
 </html>

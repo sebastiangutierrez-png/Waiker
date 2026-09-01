@@ -1,0 +1,43 @@
+# Ejemplo de configuración del Worker intermediario de Waiker.
+#
+# Si ya tienes un Worker sirviendo agromyss-web, NO lo sustituyas:
+# copia de aquí el binding [assets] y las [vars] a tu configuración,
+# y añade las rutas /api/ de worker/index.js a tu entrypoint.
+#
+# Renombra a wrangler.toml para usarlo tal cual.
+
+name = "agromyss-web"
+main = "worker/index.js"
+compatibility_date = "2026-01-01"
+
+# Sirve el sitio estático desde src/.
+# Las peticiones a /api/* las atiende el Worker antes de llegar aquí.
+[assets]
+directory = "src"
+binding = "ASSETS"
+
+[vars]
+# El agent-bridge de nemoclaw (127.0.0.1:7353), publicado por Caddy
+# bajo /agent/*. No cambies esto por api.agromyss.com a secas: /v1/*
+# sigue siendo la ruta de modelrelay, sin agente detrás.
+BRIDGE_URL = "https://api.agromyss.com/agent"
+
+# Opcionales — habilitan identidad verificada (email real por sesión)
+# en vez de compartir una sola sesión "anon" entre todo el mundo.
+# Sácalos del panel de Zero Trust > Access > Applications:
+#   CF_ACCESS_TEAM_DOMAIN = tu subdominio *.cloudflareaccess.com
+#   CF_ACCESS_AUD         = el "Application Audience (AUD) Tag" de
+#                           la aplicación que protege esta página
+# CF_ACCESS_TEAM_DOMAIN = "CAMBIAR-tu-equipo.cloudflareaccess.com"
+# CF_ACCESS_AUD = "CAMBIAR-aud-tag"
+
+# ⚠️  EL TOKEN NO VA AQUÍ. wrangler.toml se versiona en git.
+#
+# Configúralo una sola vez como secreto cifrado:
+#
+#     wrangler secret put BRIDGE_TOKEN
+#
+# El valor es el mismo que usa el agent-bridge en su propio
+# bridge.env, en /home/usuario/agent-bridge/ dentro de nemoclaw.
+# NO es OPENCLAW_GATEWAY_TOKEN — ese es del operador del gateway y
+# nunca debe salir de la máquina.
