@@ -149,7 +149,7 @@ svg { display: block; }
 }
 
 .marca-logo {
-  width: 22px; height: 22px; background: var(--cafe);
+  width: 22px; height: 22px; background: var(--acento);
   display: grid; place-items: center; font-weight: 700; font-size: 12px;
   color: #14110d; border-radius: var(--radio-s); flex: none;
 }
@@ -324,13 +324,6 @@ svg { display: block; }
   color: var(--tinta-mute); cursor: pointer;
 }
 
-.chat-briefing {
-  margin: 20px 0 0; font-size: 22px; line-height: 1.45; color: var(--tinta); text-wrap: pretty;
-}
-
-.chat-briefing-detalle {
-  margin: 13px 0 0; font-size: 13.5px; line-height: 1.65; color: var(--tinta-mute); text-wrap: pretty;
-}
 
 /* ── panel de datos ── */
 
@@ -384,11 +377,7 @@ svg { display: block; }
 
 .chat-hilo { display: flex; flex-direction: column; gap: 20px; margin-top: 26px; }
 
-.hilo-nota { display: flex; align-items: center; gap: 9px; padding: 2px 0; border-radius: 10px; }
 .hilo-nota-hora { font-size: 9.5px; color: var(--tinta-tenue); width: 44px; flex: none; }
-.hilo-nota i { width: 5px; height: 5px; border-radius: 50%; display: block; background: var(--tinta-dim); }
-.hilo-nota-texto { font-size: 11.5px; color: var(--tinta-dim); }
-.hilo-nota-linea { flex: 1; height: 1px; background: var(--linea-suave); display: block; }
 
 .hilo-msg { display: flex; align-items: flex-start; gap: 10px; border-radius: 14px; }
 
@@ -414,7 +403,17 @@ svg { display: block; }
 
 .hilo-lead { margin: 9px 0 0; font-size: 15.5px; font-weight: 500; line-height: 1.4; color: var(--tinta); text-wrap: pretty; }
 .hilo-texto { margin: 6px 0 0; font-size: 13.5px; line-height: 1.65; color: var(--tinta-mute); white-space: pre-wrap; text-wrap: pretty; }
-.hilo-texto-libre { margin-top: 9px; }
+.hilo-texto-libre { margin-top: 9px; white-space: normal; }
+.hilo-texto-libre p { margin: 0 0 8px; }
+.hilo-texto-libre p:last-child { margin-bottom: 0; }
+.hilo-texto-libre ul { margin: 0 0 8px; padding-left: 18px; }
+.hilo-texto-libre ul:last-child { margin-bottom: 0; }
+.hilo-texto-libre li { margin: 2px 0; }
+.hilo-texto-libre strong { color: var(--tinta); font-weight: 700; }
+.hilo-texto-libre code {
+  background: var(--panel-3); border: 1px solid var(--linea); border-radius: 4px;
+  padding: 1px 5px; font-family: "DM Mono", monospace; font-size: 12px;
+}
 
 .hilo-foco { animation: wkAnillo 2.2s ease-out 1; }
 @keyframes wkAnillo {
@@ -429,12 +428,6 @@ svg { display: block; }
   max-width: 76%; padding: 10px 14px; border-radius: 9px; font-size: 13.5px; line-height: 1.6;
   background: var(--burbuja-yo-bg); color: var(--tinta); border: 1px solid var(--burbuja-yo-linea);
 }
-
-.hilo-separador {
-  display: flex; align-items: center; gap: 8px; margin: 4px 0;
-  font-size: 9.5px; color: var(--tinta-tenue); text-transform: uppercase; letter-spacing: 0.08em;
-}
-.hilo-separador::before, .hilo-separador::after { content: ""; flex: 1; height: 1px; background: var(--linea-suave); }
 
 /* ── chips (sensor / lote / clima) ── */
 
@@ -532,6 +525,15 @@ svg { display: block; }
 .historial-titulo-vista { font-size: 19px; font-weight: 700; color: var(--tinta); }
 .historial-resumen { margin-left: auto; font-size: 10.5px; color: var(--tinta-tenue); }
 .historial-nota { margin: 8px 0 0; font-size: 12.5px; color: var(--tinta-mute); line-height: 1.55; }
+
+.historial-resumen-dia {
+  margin-top: 18px; padding: 16px 18px; background: var(--panel); border: 1px solid var(--linea); border-radius: 10px;
+}
+.historial-resumen-titulo { margin: 0; font-size: 16px; line-height: 1.45; color: var(--tinta); text-wrap: pretty; }
+.historial-resumen-detalle { margin: 10px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--tinta-mute); text-wrap: pretty; }
+.historial-resumen-nota { margin: 8px 0 0; font-size: 11px; color: var(--tinta-tenue); display: flex; gap: 6px; align-items: baseline; }
+
+.historial-texto { margin: 7px 0 0; font-size: 12.5px; line-height: 1.6; color: var(--tinta-mute); }
 
 .historial-lista { display: flex; flex-direction: column; gap: 8px; margin-top: 20px; }
 
