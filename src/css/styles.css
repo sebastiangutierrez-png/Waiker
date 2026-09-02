@@ -24,13 +24,13 @@
   --tinta-tenue-2: #a89f89;
   --tinta-dim: #7c714f;
 
-  /* barra lateral (siempre oscura, ambos temas) */
-  --lat-bg: #333f22;
-  --lat-linea: #2b3519;
+  /* barra lateral (siempre oscura, ambos temas) — mismo verde oliva que --acento */
+  --lat-bg: #4f6b34;
+  --lat-linea: #435c2b;
   --lat-fg: #f5f1e4;
-  --lat-mute: #c9c4ac;
-  --lat-tenue: #8a9070;
-  --lat-activo: rgba(255, 255, 255, 0.06);
+  --lat-mute: #d8d4b8;
+  --lat-tenue: #a8b78e;
+  --lat-activo: rgba(255, 255, 255, 0.1);
 
   /* acentos */
   --cafe: #7b4b26;
