@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Waiker · Panel de finca Agromyss</title>
+  <title>Waiker · LIA, el agente de Agromyss</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -16,183 +16,70 @@
 </head>
 
 <body>
-  <a class="salto" href="#wk-produccion">Saltar al contenido</a>
+  <a class="salto" href="#wk-chat-input">Saltar al chat</a>
 
-  <div class="app">
+  <div class="app" id="app">
 
     <!-- ══════════ barra lateral ══════════ -->
     <aside class="lateral" id="lateral">
       <div class="marca">
         <span class="marca-logo">W</span>
         <span class="marca-nombre">Waiker</span>
+        <button class="tema-btn" type="button" data-accion="tema" id="wk-tema-btn" aria-label="Cambiar tema"></button>
         <button class="lateral-cerrar" type="button" data-accion="cerrar-menu" aria-label="Cerrar menú">×</button>
       </div>
 
-      <nav class="nav" id="wk-nav" aria-label="Secciones del panel"></nav>
+      <div class="lia-tarjeta" id="wk-lia-tarjeta"></div>
 
-      <div class="autonomia" id="wk-autonomia"></div>
+      <nav class="lia-nav" id="wk-lia-nav" aria-label="Vistas de LIA"></nav>
+
+      <div class="lia-recientes" id="wk-lia-recientes"></div>
+
+      <div class="lia-pulso" id="wk-lia-pulso"></div>
+
+      <div class="lia-usuario" id="wk-lia-usuario"></div>
     </aside>
 
     <div class="lateral-fondo" data-accion="cerrar-menu" hidden></div>
 
     <!-- ══════════ contenido ══════════ -->
-    <main class="principal">
+    <main class="principal-lia">
 
-      <header class="cabecera">
+      <header class="cabecera-lia">
         <button class="menu-btn" type="button" data-accion="abrir-menu" aria-label="Abrir menú">☰</button>
-
-        <div class="finca">
-          <div class="finca-nombre" id="wk-finca-nombre"></div>
-          <div class="finca-detalle" id="wk-finca-detalle"></div>
-        </div>
-
-        <div class="grupo-btn" id="wk-cultivos" role="group" aria-label="Filtrar por cultivo"></div>
-        <div class="grupo-btn" id="wk-rangos" role="group" aria-label="Rango de tiempo"></div>
-
-        <div class="kpis" id="wk-kpis"></div>
-
-        <div class="perfil" id="wk-perfil"></div>
+        <span class="cabecera-lia-finca" id="wk-finca-movil"></span>
       </header>
 
-      <!-- aviso de datos simulados / estado de conexión -->
       <div class="aviso" id="wk-aviso" role="status"></div>
 
-      <div class="rejilla">
+      <section class="vista-chat" id="wk-vista-chat">
+        <div class="chat-cima" id="wk-chat-cima"></div>
+        <div class="chat-datos" id="wk-chat-datos" hidden></div>
+        <div class="chat-hilo" id="wk-chat-hilo" aria-live="polite"></div>
+      </section>
 
-        <!-- ── recolección ── -->
-        <section class="panel col-6" id="wk-produccion">
-          <div class="panel-cab">
-            <div>
-              <h3>Recolección</h3>
-              <p class="sub">kg por día · <span id="wk-rango-label"></span></p>
-            </div>
-            <div class="panel-cab-dcha" id="wk-produccion-leyenda"></div>
+      <section class="vista-historial" id="wk-vista-historial" hidden></section>
+
+      <div class="chat-pie" id="wk-chat-pie">
+        <div class="chat-atajos" id="wk-chat-atajos"></div>
+        <form class="chat-form" id="wk-chat-form" autocomplete="off">
+          <label class="oculto" for="wk-chat-input">Pregunta para LIA</label>
+          <div class="chat-form-fila">
+            <span class="chat-form-marca">
+              <span class="chat-form-ia">IA</span>
+              <span class="chat-form-marca-texto"><b>LIA</b><i>agente de IA</i></span>
+            </span>
+            <input id="wk-chat-input" placeholder="Pregúntale a LIA: «¿riego hoy Vega Baja?»" />
+            <button class="btn" type="submit" id="wk-chat-enviar">Preguntar</button>
           </div>
-          <div id="wk-produccion-svg"></div>
-        </section>
-
-        <!-- ── riego / jornales ── -->
-        <section class="col-3 apilado" id="wk-minis"></section>
-
-        <!-- ── mapa de lotes ── -->
-        <section class="panel col-3" id="wk-mapa">
-          <div class="panel-cab">
-            <h3>Lotes</h3>
-            <span class="sub ml-auto">humedad de suelo · toca un lote</span>
-          </div>
-          <div id="wk-mapa-svg"></div>
-          <div class="leyenda">
-            <span><i class="punto" style="background:#4b6b3a"></i>Óptima</span>
-            <span><i class="punto" style="background:#c98b3a"></i>Límite</span>
-            <span><i class="punto" style="background:#a8552a"></i>Saturada</span>
-          </div>
-        </section>
-
-        <!-- ── detalle del lote ── -->
-        <section class="panel panel-alt col-3" id="wk-lote"></section>
-
-        <!-- ── acumulado + anillos ── -->
-        <section class="panel col-5 acumulado" id="wk-acumulado"></section>
-
-        <!-- ── plan del día ── -->
-        <section class="panel col-4" id="wk-plan">
-          <div class="panel-cab">
-            <h3>Plan del día</h3>
-            <span class="mono sub ml-auto" id="wk-plan-resumen"></span>
-          </div>
-          <div class="barra-plan"><span id="wk-plan-barra"></span></div>
-          <div class="tareas" id="wk-plan-tareas"></div>
-        </section>
-
-        <!-- ── propuestas del agente ── -->
-        <section class="panel col-3" id="wk-openclaw">
-          <div class="panel-cab">
-            <h3>Propuestas</h3>
-            <span class="sub ml-auto" id="wk-openclaw-estado"></span>
-          </div>
-          <div class="propuestas" id="wk-openclaw-lista"></div>
-        </section>
-
-        <!-- ── cuentas del mes ── -->
-        <section class="panel col-5" id="wk-cuentas">
-          <div class="panel-cab">
-            <h3>Cuentas del mes</h3>
-            <span class="mono ml-auto" id="wk-cuentas-neto"></span>
-          </div>
-          <div class="cuentas" id="wk-cuentas-lista"></div>
-          <div class="cuentas-barra" id="wk-cuentas-barra"></div>
-        </section>
-
-        <!-- ── asistente LIA ── -->
-        <section class="panel col-4 chat" id="wk-asistente">
-          <div class="panel-cab">
-            <h3>Asistente LIA</h3>
-            <span class="sub ml-auto" id="wk-chat-estado"></span>
-          </div>
-          <div class="chat-mensajes" id="wk-chat-mensajes" aria-live="polite"></div>
-          <form class="chat-entrada" id="wk-chat-form" autocomplete="off">
-            <label class="oculto" for="wk-chat-input">Pregunta para el asistente</label>
-            <input id="wk-chat-input" placeholder="Pregunta por un lote, una alerta o el plan…" />
-            <button class="btn" type="submit" id="wk-chat-enviar">Enviar</button>
-          </form>
-        </section>
-
-        <!-- ── sensores ── -->
-        <section class="panel col-6" id="wk-sensores">
-          <div class="panel-cab">
-            <h3>Sensores</h3>
-            <span class="sub" id="wk-sensores-resumen"></span>
-          </div>
-          <div class="sensores">
-            <div class="sensores-tabla">
-              <div class="sensores-cab">
-                <span>id</span><span>ubicación</span>
-                <span class="dcha">valor</span><span class="dcha">bat.</span><span class="dcha">visto</span>
-              </div>
-              <div id="wk-sensores-lista"></div>
-            </div>
-            <div class="sensor-detalle" id="wk-sensor-detalle"></div>
-          </div>
-        </section>
-
-        <!-- ── clima ── -->
-        <section class="panel col-6" id="wk-clima">
-          <div class="panel-cab">
-            <h3>Clima 7 días</h3>
-            <span class="sub ml-auto">temperatura °C · lluvia mm</span>
-          </div>
-          <div id="wk-clima-svg"></div>
-        </section>
-
-        <!-- ── merma ── -->
-        <section class="panel col-4" id="wk-merma">
-          <div class="panel-cab">
-            <h3>Merma por lote</h3>
-            <span class="sub ml-auto">% del corte</span>
-          </div>
-          <div id="wk-merma-svg"></div>
-        </section>
-
-        <!-- ── avance de labores ── -->
-        <section class="panel col-4" id="wk-labores">
-          <div class="panel-cab">
-            <h3>Avance de labores</h3>
-            <span class="sub ml-auto">campaña</span>
-          </div>
-          <div class="labores" id="wk-labores-lista"></div>
-        </section>
-
-        <!-- ── cuadrilla ── -->
-        <section class="panel col-4" id="wk-cuadrilla">
-          <div class="panel-cab">
-            <h3>Cuadrilla</h3>
-            <span class="sub ml-auto">asistencia · kg/jornal</span>
-          </div>
-          <div class="cuadrilla" id="wk-cuadrilla-lista"></div>
-        </section>
-
+          <p class="chat-form-nota">Respuestas generadas por IA a partir de sensores, clima y registros de la finca. Puede equivocarse — revisa lo importante antes de mandar la cuadrilla.</p>
+        </form>
       </div>
     </main>
+
+    <!-- ══════════ propuestas ══════════ -->
+    <aside class="drawer" id="wk-drawer"></aside>
+
   </div>
 
   <script type="module" src="js/main.js"></script>

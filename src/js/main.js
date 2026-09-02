@@ -1,24 +1,24 @@
 // ─────────────────────────────────────────────────────────────
-//  Waiker · panel de finca Agromyss
+//  Waiker · LIA, el agente de la finca Agromyss
 //
 //  Estado en memoria + render completo en cada cambio.
 //  Sin framework ni paso de compilación: el Worker sirve estos
 //  archivos tal cual.
+//
+//  El hilo de "hoy" (HILO_DEMO) es contenido de muestra — ver la
+//  nota en data.js. El chat de abajo SÍ está conectado de verdad:
+//  cada pregunta pasa por enviarMensaje() → Worker → agent-bridge
+//  → agente OpenClaw. Las propuestas (aprobar / descartar) todavía
+//  viven sólo en el navegador: no hay endpoint que las reciba aún,
+//  así que la decisión es local y optimista, igual que antes.
 // ─────────────────────────────────────────────────────────────
 
 import {
-  C, FINCA, CULTIVOS, COLOR_CULTIVO, RANGOS, DIAS,
-  LOTES, OBJETIVO_CAMPANA, ESTADO_LOTE,
-  SENSORES, COLOR_SENSOR,
-  TAREAS, TAREAS_HECHAS,
-  PROPUESTAS_DEMO, TONO_PROPUESTA, AUTONOMIA_TOTAL, AUTONOMIA_BASE,
-  CUENTAS, CUENTAS_BARRA, CLIMA, LABORES, CUADRILLA, COLOR_AVATAR,
-  ANILLOS, SALUDO_LIA
+  C, FINCA, LOTES, SENSORES, COLOR_SENSOR, CLIMA, CUADRILLA,
+  TONO_PROPUESTA, SALUDO_LIA, BRIEFING_DEMO, HILO_DEMO, REGISTRO_DEMO, ATAJOS_DEMO
 } from "./data.js";
 
-import {
-  enviarMensaje, obtenerPropuestas, registrarDecision, hayConexion
-} from "./api.js";
+import { enviarMensaje, hayConexion } from "./api.js";
 
 // ═══════════ utilidades ═══════════
 
@@ -35,681 +35,564 @@ const esc = (v) =>
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
 
-const nfNum = new Intl.NumberFormat("es-CO");
-const nfDec = new Intl.NumberFormat("es-CO", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-const nfCop = new Intl.NumberFormat("es-CO", {
-  style: "currency", currency: "COP", maximumFractionDigits: 0
-});
+/** Recorta y añade elipsis para las listas compactas de la barra lateral. */
+const corto = (v, n) => (v.length > n ? v.slice(0, n) + "…" : v);
 
-const num = (n) => nfNum.format(n);
-const dec = (n) => nfDec.format(n);
-const cop = (n) => nfCop.format(n);
-
-/** Serie pseudoaleatoria pero estable: mismas entradas → mismo dibujo. */
-function generar(n, base, amp, semilla) {
-  return Array.from({ length: n }, (_, i) =>
-    Math.max(0, Math.round(
-      base +
-      amp * Math.sin(i * 0.72 + semilla) +
-      amp * 0.45 * Math.sin(i * 1.93 + semilla * 2) +
-      amp * 0.2 * Math.cos(i * 3.1 + semilla)
-    ))
-  );
-}
-
-/** Convierte una lista de valores en un path SVG. */
-function ruta(vals, w, h, pad, max) {
-  const m = max || Math.max(...vals) * 1.15 || 1;
-  return vals
-    .map((v, i) => {
-      const x = (i * (w / (vals.length - 1))).toFixed(1);
-      const y = (pad + (1 - v / m) * (h - pad * 2)).toFixed(1);
-      return (i ? "L" : "M") + x + " " + y;
-    })
+/** Convierte una serie de valores en puntos de polilínea SVG. */
+function spark(serie, w, h) {
+  const max = Math.max(...serie), min = Math.min(...serie), span = (max - min) || 1;
+  return serie
+    .map((v, i) => `${(i * (w / (serie.length - 1))).toFixed(1)},${((h - 1) - ((v - min) / span) * (h - 3)).toFixed(1)}`)
     .join(" ");
 }
 
-const circunf = (r) => 2 * Math.PI * r;
-const dash = (pct, r) => `${(circunf(r) * pct / 100).toFixed(1)} ${circunf(r).toFixed(1)}`;
+const HORA_FMT = new Intl.DateTimeFormat("es-CO", { hour: "2-digit", minute: "2-digit", hour12: false });
 
 // ═══════════ estado ═══════════
 
 const S = {
-  nav: "produccion",
-  rango: "7d",
-  cultivo: "Todos",
-  hover: null,
+  tema: null,           // "light" | "dark" — null usa el guardado o "light"
+  vista: "chat",         // "chat" | "historial"
+  drawer: false,
+  filtro: "espera",      // "espera" | "hecho" | "todo"
+  datos: false,
   lote: "B-1",
-  sensor: "S-04",
-  hechas: [...TAREAS_HECHAS],
-  propuestas: [],
-  usandoDemo: true,
-  conectado: false,
+  hilo: [],               // ver cargarHilo() — hoy es HILO_DEMO, mañana un fetch
+  decisiones: {},         // ancla -> "aprobada" | "descartada" | "pendiente"
+  embeds: {},             // ancla -> propuesta desplegada en el hilo del chat
+  chips: {},              // clave -> chip desplegado
+  conectado: null,
   chat: {
     mensajes: [{ rol: "lia", texto: SALUDO_LIA }],
     enviando: false
   }
 };
 
+/**
+ * Único punto de entrada del hilo de hoy (notas + propuestas del agente).
+ *
+ * TODO: cuando exista un endpoint real para propuestas/historial, esta es
+ * la función a cambiar — reemplazar el valor de HILO_DEMO por la respuesta
+ * de la API, conservando la forma de cada entrada (ver el comentario junto
+ * a HILO_DEMO en data.js). El resto de main.js sólo lee S.hilo / acciones(),
+ * así que no debería hacer falta tocar nada más.
+ */
+async function cargarHilo() {
+  S.hilo = HILO_DEMO.map((h, i) => ({ ...h, ancla: "acc-" + i }));
+}
+
+/** Sólo las entradas del hilo que son propuestas del agente (no notas). */
+function acciones() {
+  return S.hilo.filter((h) => h.tipo === "accion");
+}
+
 function set(parche) {
   Object.assign(S, parche);
   render();
 }
 
-// ═══════════ series de producción ═══════════
-
-/** Cultivos visibles según el filtro activo. */
-function cultivosVisibles() {
-  return S.cultivo === "Todos"
-    ? CULTIVOS.slice(1)
-    : [S.cultivo];
+function temaActual() {
+  return S.tema || "light";
 }
 
-function seriesProduccion() {
-  const n = RANGOS[S.rango];
-  const escala = S.rango === "24h" ? 0.28 : 1;
-  const bases = { Cacao: [96, 34, 1.2], "Café": [58, 22, 3.4], Mango: [34, 14, 5.6] };
+function modoDe(ancla, modoOriginal) {
+  return S.decisiones[ancla] || modoOriginal;
+}
 
-  const series = cultivosVisibles().map((cultivo) => {
-    const [base, amp, semilla] = bases[cultivo];
+// ═══════════ chips (sensor / lote / clima) ═══════════
+
+function chip(w, ctx) {
+  const clave = ctx + ":" + w.kind + ":" + (w.id || "");
+  const abierto = !!S.chips[clave];
+  const toggle = () => set({ chips: { ...S.chips, [clave]: !abierto } });
+
+  if (w.kind === "sensor") {
+    const sn = SENSORES.find((x) => x.id === w.id) || SENSORES[0];
+    const color = COLOR_SENSOR[sn.estado];
     return {
-      cultivo,
-      color: COLOR_CULTIVO[cultivo],
-      valores: generar(n, base * escala, amp * escala, semilla)
+      clave, abierto, color, label: sn.id, valor: sn.valor + sn.unidad,
+      detalle: `${sn.lugar} · pila ${sn.bateria}% · leído ${sn.visto}`,
+      spark: spark(sn.serie, 34, 12)
     };
-  });
+  }
+  if (w.kind === "lote") {
+    const l = LOTES.find((x) => x.id === w.id) || LOTES[0];
+    return {
+      clave, abierto, color: estadoColor(l.estado), label: l.id, valor: l.humedad + "%",
+      detalle: `${l.nombre} · ${l.cultivo.toLowerCase()} · ${l.kg} kg en campaña`,
+      spark: null
+    };
+  }
+  // clima
+  const jue = CLIMA.find(([d]) => d === "Jue");
+  return {
+    clave, abierto, color: C.water, label: "lluvia 7 d", valor: CLIMA.reduce((a, [, mm]) => a + mm, 0) + " mm",
+    detalle: `jue ${jue ? jue[1] : "—"} mm · el resto de la semana por debajo de 12 mm`,
+    spark: null
+  };
+}
 
-  const etiquetas =
-    n === 7 ? DIAS.slice()
-      : n === 24 ? Array.from({ length: 24 }, (_, i) => String(i).padStart(2, "0") + "h")
-        : Array.from({ length: 30 }, (_, i) => String(((i + 12) % 31) + 1));
-
-  return { n, series, etiquetas };
+function estadoColor(estado) {
+  return estado === "Óptima" ? C.leaf : estado === "Límite" ? C.wheat : C.clay;
 }
 
 // ═══════════ render: barra lateral ═══════════
 
-const SECCIONES = [
-  ["produccion", "Panel", null],
-  ["mapa", "Mapa de lotes", null],
-  ["plan", "Plan del día", "tareas"],
-  ["sensores", "Sensores", null],
-  ["clima", "Clima", null],
-  ["openclaw", "Openclaw", "propuestas"],
-  ["asistente", "Asistente", null]
-];
-
-function renderNav() {
-  const pendientes = S.propuestas.filter((p) => !p.decision).length;
-  const porHacer = S.hechas.filter((v) => !v).length;
-
-  $("wk-nav").innerHTML = SECCIONES.map(([id, etiqueta, tipo]) => {
-    const activo = S.nav === id;
-    let insignia = "";
-    if (tipo === "propuestas" && pendientes) insignia = String(pendientes);
-    if (tipo === "tareas" && porHacer) insignia = String(porHacer);
-
-    return `
-      <button type="button" class="${activo ? "activo" : ""}"
-              data-accion="ir" data-id="${id}"
-              ${activo ? 'aria-current="true"' : ""}>
-        <span class="nav-punto"></span>
-        <span>${esc(etiqueta)}</span>
-        ${insignia ? `<span class="nav-insignia">${insignia}</span>` : ""}
-      </button>`;
-  }).join("");
+function renderTema() {
+  const oscuro = temaActual() === "dark";
+  document.documentElement.dataset.tema = oscuro ? "dark" : "light";
+  const btn = $("wk-tema-btn");
+  btn.textContent = oscuro ? "☀" : "☾";
+  btn.title = oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
 }
 
-function renderAutonomia() {
-  const aprobadas = AUTONOMIA_BASE + S.propuestas.filter((p) => p.decision === "aprobada").length;
-  const pct = Math.round((aprobadas / AUTONOMIA_TOTAL) * 100);
+function renderLiaTarjeta() {
+  const pendientes = acciones().filter((h) => modoDe(h.ancla, h.modo) === "pendiente").length;
+  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
 
-  $("wk-autonomia").innerHTML = `
-    <div class="autonomia-titulo">Openclaw · autonomía</div>
-    <div class="autonomia-fila">
-      <svg viewBox="0 0 56 56" role="img" aria-label="${pct}% de acciones aprobadas">
-        <circle cx="28" cy="28" r="23" fill="none" stroke="#453a2f" stroke-width="6"></circle>
-        <circle cx="28" cy="28" r="23" fill="none" stroke="${C.wheat}" stroke-width="6"
-                stroke-dasharray="${dash(pct, 23)}" transform="rotate(-90 28 28)"></circle>
-        <text x="28" y="32" text-anchor="middle" font-family="DM Mono" font-size="12" fill="#f3ece1">${pct}%</text>
-      </svg>
-      <div class="autonomia-texto">
-        Acciones aprobadas<br><strong>${aprobadas} de ${AUTONOMIA_TOTAL}</strong> hoy
+  $("wk-lia-tarjeta").innerHTML = `
+    <div class="lia-fila">
+      <span class="lia-punto"></span>
+      <div>
+        <div class="lia-nombre">LIA <span class="lia-insignia">IA</span></div>
+        <div class="lia-sub mono">openclaw · en turno</div>
       </div>
     </div>
-    <div class="autonomia-ticks">
-      ${Array.from({ length: AUTONOMIA_TOTAL }, (_, i) =>
-        `<span style="background:${i < aprobadas ? C.wheat : "#453a2f"}"></span>`).join("")}
+    <p class="lia-estado">Te avisa antes de tocar riego o corte; el resto lo ordena sola y te lo cuenta después.</p>
+    <div class="lia-stats">
+      <button type="button" data-accion="drawer-filtro" data-valor="espera">
+        <span class="lia-stat-num mono" style="color:${C.wheat}">${pendientes}</span>
+        <span class="lia-stat-txt">te espera<br />a ti</span>
+      </button>
+      <button type="button" data-accion="drawer-filtro" data-valor="hecho">
+        <span class="lia-stat-num mono" style="color:${C.leaf}">${ejecutadas}</span>
+        <span class="lia-stat-txt">ya lo hizo<br />LIA</span>
+      </button>
     </div>`;
 }
 
-// ═══════════ render: cabecera ═══════════
+function renderNav() {
+  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
+  const items = [
+    ["chat", "Chat con LIA", null],
+    ["historial", "Historial de acciones", ejecutadas]
+  ];
+  $("wk-lia-nav").innerHTML = items.map(([id, label, badge]) => `
+    <button type="button" data-accion="vista" data-valor="${id}" class="${S.vista === id ? "activo" : ""}">
+      <span class="nav-punto"></span>
+      <span>${label}</span>
+      ${badge != null ? `<span class="nav-insignia">${badge}</span>` : ""}
+    </button>`).join("");
+}
 
-function renderCabecera() {
-  $("wk-finca-nombre").textContent = FINCA.nombre;
-  $("wk-finca-detalle").textContent = FINCA.detalle;
-
-  $("wk-perfil").innerHTML = `
-    <span class="perfil-avatar">${esc(FINCA.usuario.iniciales)}</span>
-    <div>
-      <div class="perfil-nombre">${esc(FINCA.usuario.nombre)}</div>
-      <div class="perfil-rol">${esc(FINCA.usuario.rol)}</div>
+function renderRecientes() {
+  const recientes = S.hilo.filter((h) => h.tipo === "accion").slice().reverse().slice(0, 3);
+  $("wk-lia-recientes").innerHTML = `
+    <div class="lat-titulo">últimas acciones</div>
+    <div class="recientes-lista">
+      ${recientes.map((h) => `
+        <button type="button" data-accion="ir-hilo" data-ancla="${h.ancla}">
+          <i style="background:${modoDe(h.ancla, h.modo) === "descartada" ? C.mute : TONO_PROPUESTA[h.tono]}"></i>
+          <span class="mono recientes-hora">${h.hora}</span>
+          <span class="recientes-titulo">${esc(corto(h.lead, 30))}</span>
+        </button>`).join("")}
     </div>`;
+}
 
-  $("wk-cultivos").innerHTML = CULTIVOS.map((c) => {
-    const on = S.cultivo === c;
-    const bg = on ? (COLOR_CULTIVO[c] || C.coffee) : "transparent";
-    return `<button type="button" class="${on ? "activo" : ""}"
-              style="background:${bg}" data-accion="cultivo" data-valor="${esc(c)}"
-              aria-pressed="${on}">${esc(c)}</button>`;
-  }).join("");
+function renderPulso() {
+  const kgCampana = LOTES.reduce((a, l) => a + l.kg, 0);
+  const jueves = CLIMA.find(([d]) => d === "Jue");
+  const peorLote = LOTES.slice().sort((a, b) => b.humedad - a.humedad)[0];
 
-  $("wk-rangos").innerHTML = Object.keys(RANGOS).map((r) => {
-    const on = S.rango === r;
-    return `<button type="button" class="mono ${on ? "activo" : ""}"
-              style="background:${on ? C.ink : "transparent"}"
-              data-accion="rango" data-valor="${r}" aria-pressed="${on}">${r}</button>`;
-  }).join("");
-
-  const { n, series } = seriesProduccion();
-  const ultimo = series.reduce((a, s) => a + s.valores[n - 1], 0);
-
-  const kpis = [
-    ["Kg hoy", num(ultimo), "+6%", C.leaf],
-    ["Kg/jornal", "24,8", "+1,2", C.leaf],
-    ["Humedad media", "39%", "+7", C.clay],
-    ["Lluvia 24 h", "18 mm", "", C.mute],
-    ["Cuadrilla", "9/11", "2 faltas", C.clay]
+  const filas = [
+    ["Kg de campaña", C.leaf, kgCampana.toLocaleString("es-CO")],
+    ["Lluvia jueves", C.water, (jueves ? jueves[1] : 0) + " mm"],
+    ["Lote a vigilar", estadoColor(peorLote.estado), peorLote.id],
+    ["Cuadrilla activa", C.wheat, CUADRILLA.length + " personas"]
   ];
 
-  $("wk-kpis").innerHTML = kpis.map(([etiqueta, valor, delta, color]) => `
-    <div class="kpi">
-      <div class="kpi-etiqueta">${esc(etiqueta)}</div>
-      <div class="kpi-valor">
-        <b>${esc(valor)}</b>
-        ${delta ? `<span class="kpi-delta" style="color:${color}">${esc(delta)}</span>` : ""}
-      </div>
-    </div>`).join("");
+  $("wk-lia-pulso").innerHTML = `
+    <div class="lat-titulo">la finca ahora</div>
+    <div class="pulso-lista">
+      ${filas.map(([etq, color, val]) => `
+        <div class="pulso-fila">
+          <i style="background:${color}"></i>
+          <span class="pulso-etiqueta">${etq}</span>
+          <span class="mono pulso-valor">${val}</span>
+        </div>`).join("")}
+    </div>`;
 }
+
+function renderUsuario() {
+  const { iniciales, nombre } = FINCA.usuario;
+  $("wk-lia-usuario").innerHTML = `
+    <span class="usuario-avatar">${esc(iniciales)}</span>
+    <div>
+      <div class="usuario-nombre">${esc(nombre)}</div>
+      <div class="mono usuario-finca">${esc(FINCA.nombre)} · ${esc(FINCA.detalle.split(" · ")[0])}</div>
+    </div>`;
+  $("wk-finca-movil").textContent = FINCA.nombre;
+}
+
+// ═══════════ render: aviso de conexión ═══════════
 
 function renderAviso() {
   const el = $("wk-aviso");
-  // El texto va dentro de un único <span>: .aviso es flex y, suelto,
-  // cada nodo de texto se convertiría en un elemento flexible aparte.
-  if (S.conectado && !S.usandoDemo) {
-    el.innerHTML = `<i style="background:${C.leaf}"></i>` +
-      `<span>Conectado al agente Openclaw. Las métricas de campo siguen siendo simuladas.</span>`;
-  } else {
-    el.innerHTML = `<i style="background:${C.wheat}"></i>` +
-      `<span>Modo prototipo · datos simulados. El asistente y las propuestas ` +
-      `responderán cuando el intermediario <span class="mono">/api</span> esté desplegado.</span>`;
-  }
+  if (S.conectado === null) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = S.conectado
+    ? `<i style="background:${C.leaf}"></i> Conectada con el agente vía agent-bridge.`
+    : `<i style="background:${C.clay}"></i> Sin conexión con el agente todavía — el chat no va a responder hasta que el Worker /api esté desplegado. El hilo de hoy que ves abajo es de muestra.`;
 }
 
-// ═══════════ render: recolección ═══════════
+// ═══════════ render: cima del chat + panel de datos ═══════════
 
-function renderProduccion() {
-  const { n, series, etiquetas } = seriesProduccion();
-  const X0 = 34, X1 = 562, TOP = 20, BOT = 160;
-
-  const todos = series.flatMap((s) => s.valores);
-  const max = Math.max(...todos) * 1.18 || 1;
-  const px = (i) => X0 + i * ((X1 - X0) / (n - 1));
-  const py = (v) => TOP + (1 - v / max) * (BOT - TOP);
-  const hi = S.hover == null ? n - 1 : Math.min(S.hover, n - 1);
-  const paso = (X1 - X0) / (n - 1);
-  const cada = n === 30 ? 5 : n === 24 ? 4 : 1;
-
-  $("wk-rango-label").textContent =
-    S.rango === "24h" ? "últimas 24 horas" : S.rango === "7d" ? "últimos 7 días" : "últimos 30 días";
-
-  $("wk-produccion-leyenda").innerHTML = `
-    <div class="sub mono">${esc(etiquetas[hi])}</div>
-    <div class="series">
-      ${series.map((s) => `
-        <span class="serie-valor">
-          <i class="cuadro" style="background:${s.color}"></i>${num(s.valores[hi])} kg
-        </span>`).join("")}
-    </div>`;
-
-  const objetivoY = py(max * 0.78);
-
-  $("wk-produccion-svg").innerHTML = `
-    <svg viewBox="0 0 570 208" role="img"
-         aria-label="Recolección en kg por día por cultivo">
-      <g stroke="${C.grid}" stroke-width="1">
-        ${[20, 55, 90, 125].map((y) =>
-          `<line x1="34" y1="${y}" x2="562" y2="${y}"></line>`).join("")}
-      </g>
-      <g font-family="DM Mono" font-size="9" fill="${C.faint}">
-        ${[0, 1, 2, 3].map((k) => {
-          const y = 20 + k * 35 + 3;
-          const val = Math.round(max * (1 - (k * 35) / (BOT - TOP)));
-          return `<text x="4" y="${y}">${val}</text>`;
-        }).join("")}
-      </g>
-      <line x1="34" y1="160" x2="562" y2="160" stroke="${C.line}" stroke-width="1"></line>
-
-      <line x1="34" y1="${objetivoY.toFixed(1)}" x2="562" y2="${objetivoY.toFixed(1)}"
-            stroke="${C.wheat}" stroke-width="1" stroke-dasharray="4 4"></line>
-      <text x="540" y="${(objetivoY - 4).toFixed(1)}" text-anchor="end"
-            font-family="DM Mono" font-size="9" fill="${C.wheat}">objetivo</text>
-
-      <line x1="${px(hi).toFixed(1)}" y1="14" x2="${px(hi).toFixed(1)}" y2="160"
-            stroke="#c2b6a8" stroke-width="1"></line>
-
-      ${series.map((s) => `
-        <polyline fill="none" stroke="${s.color}" stroke-width="2.2" stroke-linejoin="round"
-                  points="${s.valores.map((v, i) => `${px(i).toFixed(1)},${py(v).toFixed(1)}`).join(" ")}"></polyline>
-        <circle cx="${px(hi).toFixed(1)}" cy="${py(s.valores[hi]).toFixed(1)}" r="4"
-                fill="#fff" stroke="${s.color}" stroke-width="2"></circle>`).join("")}
-
-      <g font-family="DM Mono" font-size="9" fill="${C.faint}">
-        ${etiquetas.map((l, i) => (i % cada === 0
-          ? `<text x="${px(i).toFixed(1)}" y="176" text-anchor="middle">${esc(l)}</text>`
-          : "")).join("")}
-      </g>
-
-      ${Array.from({ length: n }, (_, i) =>
-        `<rect x="${(px(i) - paso / 2).toFixed(1)}" y="14" width="${paso.toFixed(1)}" height="146"
-               fill="transparent" style="cursor:crosshair"
-               data-accion="hover" data-i="${i}"></rect>`).join("")}
-    </svg>`;
+function renderChatCima() {
+  $("wk-chat-cima").innerHTML = `
+    <div class="chat-cima-fila">
+      <span class="mono chat-fecha">${esc(HORA_FMT.format(new Date()))}</span>
+      <span class="chat-linea"></span>
+      <button type="button" class="pastilla" data-accion="datos">${S.datos ? "esconder los números" : "ver los números"}</button>
+    </div>
+    <p class="chat-briefing">${esc(BRIEFING_DEMO.titulo)}</p>
+    <p class="chat-briefing-detalle">${esc(BRIEFING_DEMO.detalle)}</p>`;
 }
 
-// ═══════════ render: riego / jornales ═══════════
+function renderChatDatos() {
+  const panel = $("wk-chat-datos");
+  panel.hidden = !S.datos;
+  if (!S.datos) return;
 
-const MINIS = [
-  {
-    etiqueta: "Riego", valor: "4,2", unidad: "m³", delta: "−0,6 vs plan", deltaColor: C.clay,
-    plan: [46, 54, 30, 58, 40, 36, 50], real: [30, 44, 26, 40, 34, 22, 38], color: C.water
-  },
-  {
-    etiqueta: "Jornales", valor: "63", unidad: "h", delta: "+2 h", deltaColor: C.leaf,
-    plan: [52, 60, 40, 56, 48, 30, 44], real: [50, 58, 44, 52, 46, 26, 40], color: C.leaf
-  }
-];
-
-function renderMinis() {
-  $("wk-minis").innerHTML = MINIS.map((m) => `
-    <div class="mini">
-      <div class="mini-cab">
-        <span class="mini-etiqueta">${esc(m.etiqueta)}</span>
-        <span class="ml-auto" style="font-size:10px;color:${m.deltaColor}">${esc(m.delta)}</span>
-      </div>
-      <div class="mini-valor">${esc(m.valor)}<small> ${esc(m.unidad)}</small></div>
-      <svg viewBox="0 0 150 60" role="img" aria-label="${esc(m.etiqueta)}: plan frente a real">
-        ${m.plan.map((p, i) => {
-          const r = m.real[i];
-          const x = 4 + i * 21;
-          return `<rect x="${x}" y="${60 - p * 0.9}" width="14" height="${p * 0.9}" fill="#e0d3bd" rx="1"></rect>
-                  <rect x="${x}" y="${60 - r * 0.9}" width="14" height="${r * 0.9}" fill="${m.color}" rx="1"></rect>`;
-        }).join("")}
-      </svg>
-      <div class="mini-leyenda">
-        <span><i class="cuadro" style="background:#e0d3bd"></i>plan</span>
-        <span><i class="cuadro" style="background:${m.color}"></i>real</span>
-      </div>
-    </div>`).join("");
-}
-
-// ═══════════ render: mapa y detalle de lote ═══════════
-
-function colorEstado(estado) {
-  return estado === "Óptima" ? C.leaf : estado === "Límite" ? C.wheat : C.clay;
-}
-
-function renderMapa() {
-  $("wk-mapa-svg").innerHTML = `
-    <svg viewBox="0 0 300 200" role="img" aria-label="Mapa de lotes de la finca">
-      <g fill="none" stroke="#f2ebde" stroke-width="1">
-        <path d="M4 26 C70 8 140 40 210 22 C250 12 284 28 298 20"></path>
-        <path d="M4 62 C70 44 140 76 210 58 C250 48 284 64 298 56"></path>
-        <path d="M4 98 C70 80 140 112 210 94 C250 84 284 100 298 92"></path>
-        <path d="M4 134 C70 116 140 148 210 130 C250 120 284 136 298 128"></path>
-        <path d="M4 170 C70 152 140 184 210 166 C250 156 284 172 298 164"></path>
-      </g>
-      ${LOTES.map((l) => {
-        const on = l.id === S.lote;
-        return `
-          <g style="cursor:pointer" data-accion="lote" data-id="${l.id}">
-            <title>${esc(l.id)} · ${esc(l.nombre)} · ${esc(l.cultivo)} · humedad ${l.humedad}%</title>
-            <path d="${l.d}" fill="${on ? "#f0e3cd" : "#faf6ee"}"
-                  stroke="${on ? C.coffee : "#c9bda9"}" stroke-width="${on ? 2 : 1}"></path>
-            <text x="${l.tx}" y="${l.ty}" font-family="DM Mono" font-size="9.5" fill="#5c5145">${esc(l.id)}</text>
-            <circle cx="${l.px}" cy="${l.py}" r="5.5" fill="${colorEstado(l.estado)}"
-                    stroke="#fff" stroke-width="1.5"></circle>
-          </g>`;
-      }).join("")}
-    </svg>`;
-}
-
-function renderLote() {
   const l = LOTES.find((x) => x.id === S.lote) || LOTES[0];
-  const [bg, fg] = ESTADO_LOTE[l.estado];
-  const linea = ruta(l.hum, 260, 74, 8, 60);
-  const optY = (8 + (1 - 35 / 60) * 58).toFixed(1);
+  const lluviaMax = Math.max(...CLIMA.map(([, mm]) => mm), 1);
+  const enLinea = SENSORES.filter((s) => s.estado !== "sin señal").length;
 
-  const stats = [
-    ["Cultivo", l.cultivo],
-    ["Superficie", dec(l.ha) + " ha"],
-    ["Humedad", l.humedad + "%"],
-    ["Kg campaña", num(l.kg)]
-  ];
-
-  $("wk-lote").innerHTML = `
-    <div class="lote-cab">
-      <h3>Lote ${esc(l.id)}</h3>
-      <span class="sub">${esc(l.nombre)}</span>
-      <span class="insignia ml-auto" style="background:${bg};color:${fg}">${esc(l.estado)}</span>
+  panel.innerHTML = `
+    <div class="datos-cab">
+      <span class="mono datos-titulo">lotes · humedad</span>
+      <span class="mono datos-nota">${esc(l.id)} · ${l.humedad}%</span>
     </div>
-    <div class="lote-stats">
-      ${stats.map(([k, v]) => `
-        <div class="lote-stat">
-          <div class="etiqueta-min">${esc(k)}</div>
-          <div class="lote-stat-valor">${esc(v)}</div>
-        </div>`).join("")}
+    <div class="datos-lotes">
+      ${LOTES.map((x) => `
+        <button type="button" class="datos-lote ${x.id === S.lote ? "activo" : ""}" data-accion="lote" data-id="${x.id}">
+          <i style="background:${estadoColor(x.estado)}"></i>
+          <span class="mono">${x.id}</span>
+          <span class="datos-lote-nombre">${esc(x.nombre)}</span>
+          <span class="datos-lote-barra"><span style="width:${Math.min(100, Math.round((x.humedad / 60) * 100))}%; background:${estadoColor(x.estado)}"></span></span>
+          <span class="mono">${x.humedad}%</span>
+        </button>`).join("")}
     </div>
-    <div class="lote-titulo-serie">Humedad 7 días</div>
-    <svg viewBox="0 0 260 74" role="img" aria-label="Humedad del lote ${esc(l.id)} en 7 días">
-      <path d="${linea} L260 74 L0 74 Z" fill="#e8ddc9"></path>
-      <path d="${linea}" fill="none" stroke="${C.coffee}" stroke-width="2"></path>
-      <line x1="0" y1="${optY}" x2="260" y2="${optY}" stroke="${C.leaf}"
-            stroke-width="1" stroke-dasharray="3 3"></line>
-    </svg>`;
-}
 
-// ═══════════ render: acumulado ═══════════
-
-function renderAcumulado() {
-  const total = LOTES.reduce((a, l) => a + l.kg, 0);
-  const pct = Math.round((total / OBJETIVO_CAMPANA) * 100);
-
-  $("wk-acumulado").innerHTML = `
-    <div style="min-width:0">
-      <div class="etiqueta-min">Campaña acumulada</div>
-      <div class="acumulado-cifra">${num(total)}</div>
-      <div class="acumulado-pie">kg entregados · ${pct}% del objetivo de ${num(OBJETIVO_CAMPANA)} kg</div>
+    <div class="datos-cab" style="margin-top:12px">
+      <span class="mono datos-titulo">lluvia · 7 días</span>
+      <span class="mono datos-nota" style="color:${C.water}">${CLIMA.reduce((a, [, mm]) => a + mm, 0)} mm</span>
     </div>
-    <div class="anillos">
-      ${ANILLOS.map(([p, color, etiqueta]) => `
-        <div class="anillo">
-          <svg viewBox="0 0 72 72" role="img" aria-label="${esc(etiqueta)}: ${p}%">
-            <circle cx="36" cy="36" r="29" fill="none" stroke="${C.grid}" stroke-width="7"></circle>
-            <circle cx="36" cy="36" r="29" fill="none" stroke="${color}" stroke-width="7"
-                    stroke-dasharray="${dash(p, 29)}" transform="rotate(-90 36 36)"></circle>
-            <text x="36" y="41" text-anchor="middle" font-family="DM Mono"
-                  font-size="15" fill="${C.ink}">${p}%</text>
-          </svg>
-          <div class="anillo-etiqueta">${esc(etiqueta)}</div>
-        </div>`).join("")}
+    <svg viewBox="0 0 300 46" class="datos-clima" preserveAspectRatio="none">
+      <line x1="0" y1="34" x2="300" y2="34" stroke="var(--linea-suave)" stroke-width="1"></line>
+      ${CLIMA.map(([dia, mm], i) => {
+        const h = Math.max(2, (mm / lluviaMax) * 24);
+        const x = 8 + i * 42;
+        return `<g>
+          <rect x="${x}" y="${(34 - h).toFixed(1)}" width="24" height="${h.toFixed(1)}" fill="${C.water}" rx="2"></rect>
+          <text x="${x + 12}" y="${(34 - h - 3).toFixed(1)}" text-anchor="middle" font-family="DM Mono" font-size="7.5" fill="${C.water}">${mm}mm</text>
+          <text x="${x + 12}" y="44" text-anchor="middle" font-family="DM Mono" font-size="8" fill="var(--apagado)">${dia}</text>
+        </g>`;
+      }).join("")}
+    </svg>
+
+    <div class="datos-sensores">
+      <span class="mono datos-titulo">sensores</span>
+      <span class="datos-sensores-puntos">
+        ${SENSORES.map((s) => `<i title="${esc(s.id + " · " + s.lugar + " · " + s.valor + s.unidad)}" style="background:${COLOR_SENSOR[s.estado]}"></i>`).join("")}
+      </span>
+      <span class="mono datos-sensores-resumen">${enLinea} en línea · ${SENSORES.length - enLinea} sin señal</span>
     </div>`;
 }
 
-// ═══════════ render: plan del día ═══════════
+// ═══════════ render: hilo del chat ═══════════
 
-function renderPlan() {
-  const hechas = S.hechas.filter(Boolean).length;
-  const pct = Math.round((hechas / TAREAS.length) * 100);
-
-  $("wk-plan-resumen").textContent = `${hechas}/${TAREAS.length} hechas · 16 h`;
-  $("wk-plan-barra").style.width = pct + "%";
-
-  $("wk-plan-tareas").innerHTML = TAREAS.map(([etiqueta, lote, horas], i) => {
-    const on = S.hechas[i];
-    return `
-      <button type="button" class="tarea ${on ? "hecha" : ""}"
-              data-accion="tarea" data-i="${i}" aria-pressed="${on}">
-        <span class="tarea-caja">${on ? "✓" : ""}</span>
-        <span class="tarea-texto">${esc(etiqueta)}</span>
-        <span class="tarea-lote">${esc(lote)}</span>
-        <span class="tarea-horas">${esc(horas)}</span>
-      </button>`;
-  }).join("");
+function chipsHtml(chips, ctx) {
+  if (!chips || !chips.length) return "";
+  return `<div class="hilo-chips">
+    ${chips.map((w) => {
+      const c = chip(w, ctx);
+      return `
+      <div class="chip-envoltorio">
+        <button type="button" class="chip" data-accion="chip" data-clave="${esc(c.clave)}" style="border-color:${c.abierto ? c.color : "var(--linea-fuerte)"}">
+          <i style="background:${c.color}"></i>
+          <span class="mono">${esc(c.label)}</span>
+          <span class="mono" style="color:${c.color}">${esc(c.valor)}</span>
+          ${c.spark ? `<svg viewBox="0 0 34 12" class="chip-spark"><polyline fill="none" stroke="${c.color}" stroke-width="1.2" points="${c.spark}"></polyline></svg>` : ""}
+          <span class="mono chip-mas">${c.abierto ? "−" : "+"}</span>
+        </button>
+        ${c.abierto ? `<div class="chip-detalle mono">${esc(c.detalle)}</div>` : ""}
+      </div>`;
+    }).join("")}
+  </div>`;
 }
 
-// ═══════════ render: propuestas ═══════════
+const ESTADO_TEXTO = {
+  aprobada: "listo, va en camino", descartada: "descartado, no lo toco",
+  programado: "agendado para las 15:00", hecho: "hecho · reversible"
+};
 
-function renderPropuestas() {
-  const pendientes = S.propuestas.filter((p) => !p.decision).length;
-  $("wk-openclaw-estado").textContent =
-    S.propuestas.length ? `${pendientes} sin revisar` : "sin propuestas";
+function accionEmbedHtml(h) {
+  const modo = modoDe(h.ancla, h.modo);
+  const acento = modo === "descartada" ? C.mute : TONO_PROPUESTA[h.tono];
+  const abierto = !!S.embeds[h.ancla];
 
-  if (!S.propuestas.length) {
-    $("wk-openclaw-lista").innerHTML =
-      `<p class="sub">El agente no ha propuesto acciones todavía.</p>`;
+  if (!abierto) {
+    const etiqueta = modo === "pendiente" ? "propuesta esperándote" : "propuesta · " + ESTADO_TEXTO[modo];
+    return `
+      <button type="button" class="embed-pastilla" data-accion="embed" data-ancla="${h.ancla}">
+        <i style="background:${acento}"></i>
+        <span class="mono">${esc(etiqueta)}</span>
+        <span class="mono embed-flecha">↓</span>
+      </button>`;
+  }
+
+  return `
+    <div class="embed-tarjeta">
+      <div class="embed-cab">
+        <span class="mono embed-etiqueta">propuesta</span>
+        <button type="button" class="embed-ocultar mono" data-accion="embed" data-ancla="${h.ancla}">ocultar ↑</button>
+      </div>
+      <div class="embed-meta mono">
+        <span>${esc(h.impacto)}</span>
+        <span class="embed-punto">·</span>
+        <span>seguridad <span style="color:${acento}">${h.confianza}%</span></span>
+      </div>
+      ${modo === "pendiente" ? `
+        <div class="embed-acciones">
+          <button type="button" class="btn btn-hazlo" data-accion="decision" data-ancla="${h.ancla}" data-valor="aprobada">Dale, hazlo</button>
+          <button type="button" class="btn btn-no" data-accion="decision" data-ancla="${h.ancla}" data-valor="descartada">Mejor no</button>
+        </div>` : `
+        <div class="embed-resuelta">
+          <span class="mono" style="color:${acento}">${esc(ESTADO_TEXTO[modo])}</span>
+          <button type="button" class="embed-deshacer mono" data-accion="decision" data-ancla="${h.ancla}" data-valor="pendiente">deshacer</button>
+        </div>`}
+    </div>`;
+}
+
+function renderChatHilo() {
+  const caja = $("wk-chat-hilo");
+  const alFinal = caja.scrollHeight - caja.scrollTop - caja.clientHeight < 60;
+
+  const hiloHtml = S.hilo.map((h) => {
+    if (h.tipo === "nota") {
+      return `<div class="hilo-nota" id="${h.ancla}">
+        <span class="mono hilo-nota-hora">${h.hora}</span>
+        <i></i>
+        <span class="hilo-nota-texto">${esc(h.texto)}</span>
+        <span class="hilo-nota-linea"></span>
+      </div>`;
+    }
+    const modo = modoDe(h.ancla, h.modo);
+    return `<div class="hilo-msg" id="${h.ancla}">
+      <span class="hilo-avatar">L</span>
+      <div class="hilo-burbuja">
+        <div class="hilo-burbuja-cab">
+          <span class="hilo-quien">LIA</span>
+          <span class="hilo-tag mono">${esc(h.tag)}</span>
+          <span class="mono hilo-hora">${h.hora}</span>
+        </div>
+        <p class="hilo-lead">${esc(h.lead)}</p>
+        <p class="hilo-texto">${esc(h.texto)}</p>
+        ${chipsHtml(h.chips, h.ancla)}
+        ${accionEmbedHtml(h)}
+      </div>
+    </div>`;
+  }).join("");
+
+  const chatHtml = S.chat.mensajes.map((m, i) => {
+    const clase = m.rol === "yo" ? "yo" : m.rol === "error" ? "lia error" : "lia";
+    if (m.rol === "yo") {
+      return `<div class="hilo-yo"><div class="hilo-burbuja-yo">${esc(m.texto)}</div></div>`;
+    }
+    return `<div class="hilo-msg">
+      <span class="hilo-avatar">L</span>
+      <div class="hilo-burbuja ${clase === "lia error" ? "hilo-burbuja-error" : ""}">
+        <div class="hilo-burbuja-cab"><span class="hilo-quien">LIA</span><span class="mono hilo-hora">ahora</span></div>
+        <p class="hilo-texto hilo-texto-libre">${esc(m.texto)}</p>
+      </div>
+    </div>`;
+  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar">L</span><div class="hilo-burbuja hilo-pensando mono">LIA está pensando…</div></div>` : "");
+
+  caja.innerHTML = hiloHtml + `<div class="hilo-separador"><span>${esc(HORA_FMT.format(new Date()))} · conversación en vivo</span></div>` + chatHtml;
+
+  if (alFinal) caja.scrollTop = caja.scrollHeight;
+}
+
+function renderChatPie() {
+  const oculto = S.vista !== "chat";
+  $("wk-chat-pie").hidden = oculto;
+  if (oculto) return;
+
+  $("wk-chat-atajos").innerHTML = ATAJOS_DEMO.map((a) =>
+    `<button type="button" class="pastilla" data-accion="atajo" data-valor="${esc(a)}">${esc(a)}</button>`).join("");
+
+  $("wk-chat-estado") && ($("wk-chat-estado").textContent = S.conectado ? "en línea" : "sin conexión");
+  $("wk-chat-input").disabled = S.chat.enviando;
+  $("wk-chat-enviar").disabled = S.chat.enviando;
+}
+
+// ═══════════ render: historial ═══════════
+
+function renderHistorial() {
+  const oculto = S.vista !== "historial";
+  $("wk-vista-historial").hidden = oculto;
+  if (oculto) return;
+
+  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
+  const pendientes = acciones().filter((h) => modoDe(h.ancla, h.modo) === "pendiente").length;
+
+  const lista = acciones().slice().reverse().map((h) => {
+    const modo = modoDe(h.ancla, h.modo);
+    const acento = modo === "descartada" ? C.mute : TONO_PROPUESTA[h.tono];
+    return `
+    <div class="historial-tarjeta" style="border-left-color:${acento}">
+      <div class="historial-cab">
+        <span class="mono historial-tag" style="color:${acento}">${esc(h.tag)}</span>
+        <span class="mono historial-hora">${h.hora}</span>
+      </div>
+      <button type="button" class="historial-titulo" data-accion="ir-hilo" data-ancla="${h.ancla}">${esc(h.lead)}</button>
+      <div class="historial-meta">
+        <span class="mono">${modo === "pendiente" ? "esperándote" : esc(ESTADO_TEXTO[modo])}</span>
+        <span class="mono" style="color:${acento}; margin-left:auto">seguridad ${h.confianza}%</span>
+      </div>
+      ${modo === "pendiente" ? `
+        <div class="embed-acciones" style="margin-top:9px">
+          <button type="button" class="btn btn-hazlo" data-accion="decision" data-ancla="${h.ancla}" data-valor="aprobada">Hazlo</button>
+          <button type="button" class="btn btn-no" data-accion="decision" data-ancla="${h.ancla}" data-valor="descartada">No</button>
+        </div>` : ""}
+    </div>`;
+  }).join("");
+
+  $("wk-vista-historial").innerHTML = `
+    <div class="historial-cima">
+      <span class="historial-titulo-vista">Historial de acciones</span>
+      <span class="mono historial-resumen">${ejecutadas} hechas · ${pendientes} esperando</span>
+    </div>
+    <p class="historial-nota">Todo lo que LIA propuso o hizo hoy, de lo más reciente a lo más viejo.</p>
+    <div class="historial-lista">${lista}</div>`;
+}
+
+// ═══════════ render: propuestas (drawer) ═══════════
+
+function renderDrawer() {
+  const pendientes = acciones().filter((h) => modoDe(h.ancla, h.modo) === "pendiente").length;
+  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
+  const drawer = $("wk-drawer");
+  drawer.classList.toggle("abierto", S.drawer);
+
+  if (!S.drawer) {
+    drawer.innerHTML = `
+      <button type="button" class="drawer-pestana" data-accion="drawer-toggle" aria-label="Abrir propuestas">
+        <span class="drawer-pestana-fila">
+          <span class="drawer-insignia mono">${pendientes}</span>
+          <span class="drawer-pestana-txt">
+            <span class="drawer-pestana-titulo">Propuestas</span>
+            <span class="mono drawer-pestana-sub">${ejecutadas} hechas hoy</span>
+          </span>
+        </span>
+        <span class="drawer-puntos">
+          ${acciones().map((h) => {
+            const modo = modoDe(h.ancla, h.modo);
+            const color = modo === "pendiente" ? C.wheat : modo === "descartada" ? "var(--linea-fuerte)" : C.leaf;
+            return `<i style="background:${color}; opacity:${modo === "pendiente" ? 1 : 0.45}"></i>`;
+          }).join("")}
+        </span>
+        <span class="mono drawer-pestana-ver">Ver panel ‹</span>
+      </button>`;
     return;
   }
 
-  $("wk-openclaw-lista").innerHTML = S.propuestas.map((p, i) => {
-    const acento = p.decision === "descartada" ? C.mute : (TONO_PROPUESTA[p.tono] || C.mute);
+  const visible = (m) => S.filtro === "todo" ? true : S.filtro === "espera" ? m === "pendiente" : m !== "pendiente";
+  const lista = acciones().filter((h) => visible(modoDe(h.ancla, h.modo))).slice().reverse().map((h) => {
+    const modo = modoDe(h.ancla, h.modo);
+    const acento = modo === "descartada" ? C.mute : TONO_PROPUESTA[h.tono];
     return `
-      <article class="propuesta ${p.decision ? "resuelta" : ""}" style="border-left-color:${acento}">
-        <div class="propuesta-cab">
-          <span class="propuesta-titulo">${esc(p.titulo)}</span>
-          <span class="propuesta-lote">${esc(p.lote)}</span>
-        </div>
-        <div class="propuesta-motivo">${esc(p.motivo)}</div>
-        ${p.decision
-          ? `<div class="propuesta-estado" style="color:${acento}">${
-              p.decision === "aprobada" ? "Aprobado · enviado a la cuadrilla" : "Descartado"
-            }</div>`
-          : `<div class="propuesta-acciones">
-               <button type="button" class="btn" data-accion="propuesta" data-i="${i}" data-decision="aprobada">Aprobar</button>
-               <button type="button" class="btn btn-sec" data-accion="propuesta" data-i="${i}" data-decision="descartada">Descartar</button>
-             </div>`}
-      </article>`;
-  }).join("");
-}
-
-// ═══════════ render: cuentas ═══════════
-
-function renderCuentas() {
-  const neto = CUENTAS.reduce((a, c) => a + c.valor, 0);
-
-  const netoEl = $("wk-cuentas-neto");
-  netoEl.textContent = `${neto >= 0 ? "+" : ""}${cop(neto)} neto`;
-  netoEl.style.color = neto >= 0 ? C.leaf : C.clay;
-
-  $("wk-cuentas-lista").innerHTML = CUENTAS.map((c) => {
-    const positivo = c.signo > 0;
-    return `
-      <div class="cuenta">
-        <i class="cuadro" style="background:${positivo ? C.leaf : C.clay}"></i>
-        <span>${esc(c.etiqueta)}</span>
-        <span class="cuenta-valor" style="color:${positivo ? C.ink : C.clay}">${cop(c.valor)}</span>
-      </div>`;
-  }).join("");
-
-  $("wk-cuentas-barra").innerHTML = CUENTAS_BARRA
-    .map(([w, color]) => `<span style="width:${w};background:${color}"></span>`).join("");
-}
-
-// ═══════════ render: sensores ═══════════
-
-function renderSensores() {
-  const enLinea = SENSORES.filter((s) => s.estado !== "sin señal").length;
-  $("wk-sensores-resumen").textContent =
-    `${enLinea} en línea · ${SENSORES.length - enLinea} sin señal`;
-
-  $("wk-sensores-lista").innerHTML = SENSORES.map((s) => {
-    const on = s.id === S.sensor;
-    const color = COLOR_SENSOR[s.estado];
-    const valColor = s.estado === "alerta" ? C.clay : s.estado === "sin señal" ? C.mute : C.ink;
-    return `
-      <button type="button" class="sensor-fila ${on ? "activo" : ""}"
-              data-accion="sensor" data-id="${s.id}" aria-pressed="${on}">
-        <span class="sensor-id"><i style="background:${color}"></i>${esc(s.id)}</span>
-        <span class="sensor-lugar">${esc(s.lugar)}</span>
-        <span class="sensor-valor" style="color:${valColor}">${s.valor}${esc(s.unidad)}</span>
-        <span class="sensor-bat">${s.bateria}%</span>
-        <span class="sensor-visto">${esc(s.visto)}</span>
-      </button>`;
-  }).join("");
-
-  const s = SENSORES.find((x) => x.id === S.sensor) || SENSORES[0];
-  const color = COLOR_SENSOR[s.estado];
-  const max = Math.max(...s.serie) * 1.25 || 1;
-  const linea = ruta(s.serie, 200, 62, 6, max);
-  const media = s.serie.reduce((a, b) => a + b, 0) / s.serie.length;
-
-  $("wk-sensor-detalle").innerHTML = `
-    <div class="sensor-detalle-id">${esc(s.id)}</div>
-    <div class="sub">${esc(s.lugar)} · ${esc(s.tipo)}</div>
-    <div class="sensor-detalle-valor" style="color:${color}">${s.valor}${esc(s.unidad)}</div>
-    <svg viewBox="0 0 200 62" role="img" aria-label="Serie reciente del sensor ${esc(s.id)}">
-      <path d="${linea} L200 62 L0 62 Z" fill="${C.soft}"></path>
-      <path d="${linea}" fill="none" stroke="${color}" stroke-width="1.8"></path>
-    </svg>
-    <div class="sensor-meta">
-      <div><span>Batería</span><span>${s.bateria}%</span></div>
-      <div><span>Última lectura</span><span>${esc(s.visto)}</span></div>
-      <div><span>Media</span><span>${dec(media)}${esc(s.unidad)}</span></div>
-    </div>`;
-}
-
-// ═══════════ render: clima ═══════════
-
-function renderClima() {
-  const x0 = 40, paso = 74, lluviaMax = 24;
-  const tempY = (t) => 96 - ((t - 18) / 14) * 68;
-
-  const puntos = CLIMA.map(([, , tmax], i) =>
-    `${x0 + i * paso + 13},${tempY(tmax).toFixed(1)}`).join(" ");
-
-  $("wk-clima-svg").innerHTML = `
-    <svg viewBox="0 0 570 150" role="img" aria-label="Clima de los próximos 7 días">
-      <line x1="30" y1="112" x2="562" y2="112" stroke="${C.line}" stroke-width="1"></line>
-      ${CLIMA.map(([dia, lluvia, tmax, tmin], i) => {
-        const cx = x0 + i * paso + 13;
-        const h = Math.max(2, (lluvia / lluviaMax) * 62);
-        return `
-          <rect x="${x0 + i * paso}" y="${(112 - h).toFixed(1)}" width="26"
-                height="${h.toFixed(1)}" fill="#a8c4cc" rx="2"></rect>
-          <text x="${cx}" y="${(112 - h - 4).toFixed(1)}" text-anchor="middle"
-                font-family="DM Mono" font-size="9" fill="#5d7a83">${lluvia} mm</text>
-          <text x="${cx}" y="128" text-anchor="middle" font-family="DM Mono"
-                font-size="10" fill="#6b6055">${esc(dia)}</text>
-          <text x="${cx}" y="143" text-anchor="middle" font-family="DM Mono"
-                font-size="9.5" fill="${C.faint}">${tmin}/${tmax}°</text>`;
-      }).join("")}
-      <polyline fill="none" stroke="${C.wheat}" stroke-width="2.2" points="${puntos}"></polyline>
-      ${CLIMA.map(([, , tmax], i) =>
-        `<circle cx="${x0 + i * paso + 13}" cy="${tempY(tmax).toFixed(1)}" r="3.4"
-                 fill="#fff" stroke="${C.wheat}" stroke-width="1.8"></circle>`).join("")}
-    </svg>`;
-}
-
-// ═══════════ render: merma ═══════════
-
-function renderMerma() {
-  $("wk-merma-svg").innerHTML = `
-    <svg viewBox="0 0 340 168" role="img" aria-label="Merma por lote en porcentaje del corte">
-      <g stroke="${C.grid}" stroke-width="1">
-        ${[20, 52, 84, 116].map((y) => `<line x1="32" y1="${y}" x2="336" y2="${y}"></line>`).join("")}
-      </g>
-      <g font-family="DM Mono" font-size="9" fill="${C.faint}">
-        <text x="2" y="23">12</text><text x="2" y="55">9</text>
-        <text x="2" y="87">6</text><text x="2" y="119">3</text>
-      </g>
-      <line x1="32" y1="140" x2="336" y2="140" stroke="${C.line}" stroke-width="1"></line>
-      ${LOTES.map((l, i) => {
-        const h = (l.merma / 12) * 120;
-        const on = l.id === S.lote;
-        const x = 44 + i * 48;
-        return `
-          <g style="cursor:pointer" data-accion="lote" data-id="${l.id}">
-            <title>${esc(l.id)}: ${dec(l.merma)}% de merma</title>
-            <rect x="${x}" y="${(140 - h).toFixed(1)}" width="26" height="${h.toFixed(1)}"
-                  fill="${on ? C.clay : "#d8c9b2"}" rx="2"></rect>
-            <text x="${x + 13}" y="${(140 - h - 4).toFixed(1)}" text-anchor="middle"
-                  font-family="DM Mono" font-size="9" fill="#6b6055">${dec(l.merma)}</text>
-            <text x="${x + 13}" y="156" text-anchor="middle" font-family="DM Mono"
-                  font-size="9.5" fill="${C.faint}">${esc(l.id)}</text>
-          </g>`;
-      }).join("")}
-    </svg>`;
-}
-
-// ═══════════ render: labores y cuadrilla ═══════════
-
-function renderLabores() {
-  $("wk-labores-lista").innerHTML = LABORES.map((b) => `
-    <div>
-      <div class="labor-cab">
-        <span>${esc(b.etiqueta)}</span>
-        <span class="labor-pct">${b.pct}%</span>
+    <div class="drawer-tarjeta" style="border-left-color:${acento}">
+      <div class="drawer-tarjeta-cab">
+        <span class="mono" style="color:${acento}">${esc(h.tag)}</span>
+        <span class="mono drawer-hora">${h.hora}</span>
       </div>
-      <span class="labor-pista">
-        <span class="labor-relleno" style="width:${b.pct}%;background:${b.color}"></span>
-        <span class="labor-objetivo" style="left:${b.objetivo}%"
-              title="objetivo ${b.objetivo}%"></span>
-      </span>
-    </div>`).join("");
-}
+      <button type="button" class="drawer-titulo" data-accion="ir-hilo" data-ancla="${h.ancla}">${esc(h.lead)}</button>
+      <div class="drawer-tarjeta-meta">
+        <span class="mono">${modo === "pendiente" ? "esperándote" : esc(ESTADO_TEXTO[modo])}</span>
+        <span class="drawer-barra"><span style="width:${h.confianza}%; background:${acento}"></span></span>
+        <span class="mono" style="color:${acento}">${h.confianza}%</span>
+      </div>
+      ${modo === "pendiente" ? `
+        <div class="drawer-acciones">
+          <button type="button" class="btn btn-hazlo" data-accion="decision" data-ancla="${h.ancla}" data-valor="aprobada">Hazlo</button>
+          <button type="button" class="btn btn-no" data-accion="decision" data-ancla="${h.ancla}" data-valor="descartada">No</button>
+        </div>` : ""}
+    </div>`;
+  }).join("");
 
-function renderCuadrilla() {
-  $("wk-cuadrilla-lista").innerHTML = CUADRILLA.map(([nombre, dias, rate], i) => `
-    <div class="peon">
-      <span class="peon-avatar" style="background:${COLOR_AVATAR[i]}">${
-        esc(nombre.split(" ").map((p) => p[0]).join(""))
-      }</span>
-      <span class="peon-nombre">${esc(nombre)}</span>
-      <span class="peon-dias">
-        ${Array.from({ length: 6 }, (_, k) =>
-          `<span style="background:${k < dias ? C.leaf : C.soft}"></span>`).join("")}
-      </span>
-      <span class="peon-rate">${esc(rate)}</span>
-    </div>`).join("");
-}
-
-// ═══════════ render: asistente ═══════════
-
-function renderChat() {
-  const caja = $("wk-chat-mensajes");
-  const alFinal = caja.scrollHeight - caja.scrollTop - caja.clientHeight < 40;
-
-  caja.innerHTML = S.chat.mensajes.map((m) => {
-    const clase = m.rol === "yo" ? "yo" : m.rol === "error" ? "lia error" : "lia";
-    return `<div class="msg ${clase}">${esc(m.texto)}</div>`;
-  }).join("") + (S.chat.enviando ? `<div class="msg lia escribiendo">LIA está pensando…</div>` : "");
-
-  if (alFinal) caja.scrollTop = caja.scrollHeight;
-
-  $("wk-chat-estado").textContent = S.conectado ? "en línea" : "sin conexión";
-  $("wk-chat-input").disabled = S.chat.enviando;
-  $("wk-chat-enviar").disabled = S.chat.enviando;
+  drawer.innerHTML = `
+    <div class="drawer-panel">
+      <div class="drawer-cab">
+        <span class="drawer-cab-titulo">Propuestas</span>
+        <span class="mono drawer-cab-insignia">${pendientes}</span>
+        <button type="button" class="drawer-cerrar" data-accion="drawer-toggle" aria-label="Cerrar propuestas">›</button>
+      </div>
+      <div class="drawer-filtros">
+        ${[["espera", "en espera"], ["hecho", "hechas"], ["todo", "todas"]].map(([id, label]) =>
+          `<button type="button" class="${S.filtro === id ? "activo" : ""}" data-accion="drawer-filtro" data-valor="${id}">${label}</button>`).join("")}
+      </div>
+      <div class="drawer-lista">${lista || `<p class="drawer-vacio mono">nada por aquí</p>`}</div>
+      <div class="drawer-registro">
+        <div class="lat-titulo">lo que hizo hoy</div>
+        ${REGISTRO_DEMO.map((r) => `
+          <div class="registro-fila">
+            <span class="mono registro-hora">${r.hora}</span>
+            <span class="registro-texto">${esc(r.texto)}</span>
+          </div>`).join("")}
+      </div>
+    </div>`;
 }
 
 // ═══════════ render maestro ═══════════
 
 function render() {
+  renderTema();
+  renderLiaTarjeta();
   renderNav();
-  renderAutonomia();
-  renderCabecera();
+  renderRecientes();
+  renderPulso();
+  renderUsuario();
   renderAviso();
-  renderProduccion();
-  renderMinis();
-  renderMapa();
-  renderLote();
-  renderAcumulado();
-  renderPlan();
-  renderPropuestas();
-  renderCuentas();
-  renderSensores();
-  renderClima();
-  renderMerma();
-  renderLabores();
-  renderCuadrilla();
-  renderChat();
+
+  $("wk-vista-chat").hidden = S.vista !== "chat";
+  if (S.vista === "chat") {
+    renderChatCima();
+    renderChatDatos();
+    renderChatHilo();
+  }
+  renderHistorial();
+  renderChatPie();
+  renderDrawer();
 }
 
 // ═══════════ eventos ═══════════
 
-/** Sube al elemento con data-accion más cercano. */
 function accionDe(target) {
   const el = target.closest?.("[data-accion]");
   return el ? { el, accion: el.dataset.accion } : null;
+}
+
+function irAAncla(ancla) {
+  set({ vista: "chat" });
+  requestAnimationFrame(() => {
+    const el = $(ancla);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      el.classList.add("hilo-foco");
+      setTimeout(() => el.classList.remove("hilo-foco"), 2200);
+    }
+  });
 }
 
 document.addEventListener("click", (e) => {
@@ -718,69 +601,60 @@ document.addEventListener("click", (e) => {
   const { el, accion } = hit;
 
   switch (accion) {
-    case "ir": {
-      const id = el.dataset.id;
-      set({ nav: id });
-      const destino = $("wk-" + id);
-      if (destino) {
-        const y = destino.getBoundingClientRect().top + window.scrollY - 74;
-        window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
-      }
-      cerrarMenu();
-      break;
-    }
-
-    case "cultivo":
-      set({ cultivo: el.dataset.valor, hover: null });
+    case "tema":
+      set({ tema: temaActual() === "light" ? "dark" : "light" });
+      try { window.localStorage.setItem("waiker-tema", S.tema); } catch { /* modo privado: seguimos sin recordar tema */ }
       break;
 
-    case "rango":
-      set({ rango: el.dataset.valor, hover: null });
+    case "vista":
+      set({ vista: el.dataset.valor });
       break;
 
-    case "lote": {
-      const id = el.dataset.id;
-      const sensor = SENSORES.find((s) => s.lugar.startsWith(id));
-      set({ lote: id, sensor: sensor ? sensor.id : S.sensor });
-      break;
-    }
-
-    case "sensor":
-      set({ sensor: el.dataset.id });
+    case "datos":
+      set({ datos: !S.datos });
       break;
 
-    case "tarea": {
-      const i = Number(el.dataset.i);
-      const hechas = S.hechas.map((v, k) => (k === i ? !v : v));
-      set({ hechas });
+    case "lote":
+      set({ lote: el.dataset.id });
       break;
-    }
 
-    case "propuesta":
-      decidirPropuesta(Number(el.dataset.i), el.dataset.decision);
+    case "chip":
+      set({ chips: { ...S.chips, [el.dataset.clave]: !S.chips[el.dataset.clave] } });
+      break;
+
+    case "embed":
+      set({ embeds: { ...S.embeds, [el.dataset.ancla]: !S.embeds[el.dataset.ancla] } });
+      break;
+
+    case "decision":
+      set({ decisiones: { ...S.decisiones, [el.dataset.ancla]: el.dataset.valor } });
+      break;
+
+    case "ir-hilo":
+      irAAncla(el.dataset.ancla);
+      break;
+
+    case "drawer-toggle":
+      set({ drawer: !S.drawer });
+      break;
+
+    case "drawer-filtro":
+      set({ drawer: true, filtro: el.dataset.valor });
+      break;
+
+    case "atajo":
+      enviarDesdeInput(el.dataset.valor);
       break;
 
     case "abrir-menu":
       document.querySelector(".app").classList.add("menu-abierto");
-      $("lateral").querySelector(".nav button")?.focus();
+      $("lateral").querySelector("button")?.focus();
       break;
 
     case "cerrar-menu":
       cerrarMenu();
       break;
   }
-});
-
-document.addEventListener("mouseover", (e) => {
-  const hit = accionDe(e.target);
-  if (hit && hit.accion === "hover") {
-    const i = Number(hit.el.dataset.i);
-    if (i !== S.hover) set({ hover: i });
-  }
-});
-
-$("wk-produccion-svg").addEventListener("mouseleave", () => {
-  if (S.hover !== null) set({ hover: null });
 });
 
 document.addEventListener("keydown", (e) => {
@@ -793,32 +667,26 @@ function cerrarMenu() {
 
 // ── asistente ──
 
-$("wk-chat-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
+async function enviarDesdeInput(textoForzado) {
   const input = $("wk-chat-input");
-  const texto = input.value.trim();
+  const texto = (textoForzado ?? input.value).trim();
   if (!texto || S.chat.enviando) return;
 
   input.value = "";
   S.chat.mensajes.push({ rol: "yo", texto });
   S.chat.enviando = true;
   render();
+  $("wk-chat-hilo").scrollTop = $("wk-chat-hilo").scrollHeight;
 
   try {
-    const respuesta = await enviarMensaje(S.chat.mensajes, {
-      lote: S.lote,
-      sensor: S.sensor,
-      cultivo: S.cultivo,
-      rango: S.rango
-    });
+    const respuesta = await enviarMensaje(S.chat.mensajes, { lote: S.lote });
     S.chat.mensajes.push({ rol: "lia", texto: respuesta });
     S.conectado = true;
   } catch (err) {
     S.chat.mensajes.push({
       rol: "error",
       texto:
-        "No pude contactar al agente. " +
-        "Comprueba que el intermediario /api esté desplegado en el Worker.\n\n" +
+        "No pude contactar al agente. Comprueba que el intermediario /api esté desplegado en el Worker.\n\n" +
         "Detalle: " + err.message
     });
     S.conectado = false;
@@ -827,85 +695,24 @@ $("wk-chat-form").addEventListener("submit", async (e) => {
     render();
     $("wk-chat-input").focus();
   }
+}
+
+$("wk-chat-form").addEventListener("submit", (e) => {
+  e.preventDefault();
+  enviarDesdeInput();
 });
-
-// ── propuestas ──
-
-async function decidirPropuesta(i, decision) {
-  const p = S.propuestas[i];
-  if (!p || p.decision) return;
-
-  // Actualización optimista: la interfaz responde de inmediato.
-  p.decision = decision;
-  render();
-
-  if (S.usandoDemo || !p.id) return; // propuestas de muestra: nada que registrar
-
-  try {
-    await registrarDecision(p.id, decision);
-  } catch (err) {
-    console.warn("No se pudo registrar la decisión:", err.message);
-    S.conectado = false;
-    render();
-  }
-}
-
-// ═══════════ scroll-spy ═══════════
-
-function iniciarScrollSpy() {
-  const ids = SECCIONES.map(([id]) => id);
-  const nodos = ids.map((id) => $("wk-" + id)).filter(Boolean);
-  if (!("IntersectionObserver" in window) || !nodos.length) return;
-
-  const obs = new IntersectionObserver(
-    (entradas) => {
-      const visible = entradas
-        .filter((x) => x.isIntersecting)
-        .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-      if (!visible) return;
-
-      const id = visible.target.id.replace(/^wk-/, "");
-      if (id !== S.nav) {
-        S.nav = id;
-        renderNav();
-      }
-    },
-    { rootMargin: "-80px 0px -55% 0px", threshold: [0.15, 0.5] }
-  );
-
-  nodos.forEach((n) => obs.observe(n));
-}
 
 // ═══════════ arranque ═══════════
 
-/** Carga propuestas reales; si falla, deja las de muestra. */
-async function cargarPropuestas() {
-  try {
-    const lista = await obtenerPropuestas({ cultivo: S.cultivo, lote: S.lote });
-    S.propuestas = lista.map((p, i) => ({
-      id: p.id ?? String(i),
-      titulo: p.titulo ?? "(sin título)",
-      lote: p.lote ?? "—",
-      motivo: p.motivo ?? "",
-      tono: p.tono ?? "wheat",
-      decision: p.decision ?? null
-    }));
-    S.usandoDemo = false;
-    S.conectado = true;
-  } catch {
-    S.propuestas = PROPUESTAS_DEMO.map((p, i) => ({ ...p, id: null, decision: null, _i: i }));
-    S.usandoDemo = true;
-  }
-}
-
 async function iniciar() {
-  // Pinta de inmediato con datos de muestra: nada espera a la red.
-  S.propuestas = PROPUESTAS_DEMO.map((p) => ({ ...p, id: null, decision: null }));
-  render();
-  iniciarScrollSpy();
+  try {
+    const guardado = window.localStorage.getItem("waiker-tema");
+    if (guardado === "light" || guardado === "dark") S.tema = guardado;
+  } catch { /* modo privado: usamos el tema por defecto */ }
 
+  await cargarHilo();
+  render();
   S.conectado = await hayConexion();
-  if (S.conectado) await cargarPropuestas();
   render();
 }
 

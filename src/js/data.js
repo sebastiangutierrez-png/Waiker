@@ -125,17 +125,7 @@ export const TAREAS = [
 /** Estado inicial de las tareas completadas. */
 export const TAREAS_HECHAS = [true, true, false, false, true, false];
 
-/**
- * Propuestas de respaldo del agente.
- * Se muestran cuando la API no responde; si responde, se reemplazan.
- * Ver api.js → obtenerPropuestas().
- */
-export const PROPUESTAS_DEMO = [
-  { titulo: "Pausar riego 48 h", lote: "B-1", motivo: "Humedad 52% y 18 mm de lluvia previstos.", tono: "clay" },
-  { titulo: "Adelantar corte a mañana", lote: "A-2", motivo: "Madurez 84% y ventana seca de 2 días.", tono: "leaf" },
-  { titulo: "Sustituir batería sensor", lote: "C-1", motivo: "S-06 al 12% y sin caudal desde ayer.", tono: "wheat" }
-];
-
+/** Color por tono de propuesta/acción del agente. Usado por el hilo de HILO_DEMO. */
 export const TONO_PROPUESTA = { clay: C.clay, leaf: C.leaf, wheat: C.wheat };
 
 /** Total de acciones que el agente puede proponer en el día (gauge de autonomía). */
@@ -207,3 +197,87 @@ export const ANILLOS = [
 export const SALUDO_LIA =
   "Hola. Soy LIA, el asistente de la finca. Puedo explicarte el estado de los " +
   "lotes, las alertas de humedad o el plan del día. Pregúntame lo que necesites.";
+
+// ─────────────────────────────────────────────────────────────
+//  Hilo de hoy · prototipo del panel agéntico
+//
+//  TODO: esto es contenido de muestra, igual que PROPUESTAS_DEMO.
+//  Cuenta la misma historia que PROPUESTAS_DEMO (pausar riego en
+//  B-1, adelantar corte en A-2, cambiar batería en C-1) pero en
+//  forma de hilo de chat. Cuando exista un backend para el hilo,
+//  reemplazar por la respuesta real conservando la forma de cada
+//  entrada: main.js sólo depende de estos campos, no de los valores.
+// ─────────────────────────────────────────────────────────────
+
+/** Resumen que abre la vista de chat cada día. */
+export const BRIEFING_DEMO = {
+  titulo:
+    "Vega Baja sigue encharcada y el jueves entran 18 mm, así que apagué el riego y puse el " +
+    "drenaje de primero. Lo que necesito de ti es el corte de Cañada Honda: si lo pasamos a " +
+    "mañana, aprovechamos el último día seco.",
+  detalle:
+    "Del resto no te preocupes: el plan del día ya quedó ordenado, la cuadrilla está avisada " +
+    "y el sensor de Corral Nuevo tiene su cita en la tarde. Si algo se sale de lo normal te " +
+    "escribo yo primero."
+};
+
+/**
+ * Hilo de hoy: notas del sistema y propuestas del agente, en orden cronológico.
+ * `tag` decide la insignia mostrada; `tono` ∈ TONO_PROPUESTA decide el color.
+ * `chips` referencia SENSORES / LOTES por id para el detalle desplegable.
+ */
+export const HILO_DEMO = [
+  { tipo: "nota", hora: "05:30", texto: "LIA revisó los 6 lotes y los 6 sensores." },
+  {
+    tipo: "accion", modo: "hecho", tag: "plan", hora: "05:58", tono: "wheat", confianza: 96,
+    lead: "Moví el drenaje de Vega Baja a las 6:00.",
+    texto: "El sensor S-04 sigue marcando 52% de humedad, por encima de lo que aguanta el mango. " +
+      "Puse el drenaje de primero en el plan, antes de que apriete el calor.",
+    impacto: "2 tareas reordenadas", chips: [{ kind: "sensor", id: "S-04" }]
+  },
+  {
+    tipo: "accion", modo: "hecho", tag: "aviso", hora: "05:59", tono: "leaf", confianza: 99,
+    lead: "Avisé a la cuadrilla de la entrada.",
+    texto: "Le escribí a los que están activos hoy: entrada 6:00 en Vega Baja, botas y pala.",
+    impacto: "6 avisados"
+  },
+  {
+    tipo: "accion", modo: "pendiente", tag: "riego", hora: "06:12", tono: "clay", confianza: 91,
+    lead: "Pausemos el riego de Vega Baja 48 horas.",
+    texto: "B-1 lleva varios días con la humedad por encima del límite y el jueves entran 18 mm " +
+      "de lluvia. Si riegas hoy, el surco se vuelve a encharcar y se daña fruta al cortar.",
+    impacto: "ahorra riego y un jornal", chips: [{ kind: "sensor", id: "S-04" }, { kind: "clima" }]
+  },
+  {
+    tipo: "accion", modo: "pendiente", tag: "corte", hora: "06:12", tono: "leaf", confianza: 84,
+    lead: "Adelantemos el corte de Cañada Honda a mañana.",
+    texto: "El cacao de A-2 ya está en punto y mañana es el último día seco antes de la lluvia " +
+      "del jueves. Reparto la cuadrilla y lo cerramos en el día.",
+    impacto: "evita perder la ventana seca", chips: [{ kind: "lote", id: "A-2" }]
+  },
+  {
+    tipo: "accion", modo: "programado", tag: "mantenimiento", hora: "06:03", tono: "wheat", confianza: 72,
+    lead: "Agendé cambio de batería para el sensor de Corral Nuevo.",
+    texto: "S-06 está al 12% de batería y sin caudal desde ayer. No mandé a nadie solo por eso: " +
+      "lo dejé pegado al pesaje de la tarde.",
+    impacto: "20 minutos, una persona", chips: [{ kind: "sensor", id: "S-06" }]
+  }
+];
+
+/** Bandeja "lo que hizo hoy" al pie del panel de propuestas. */
+export const REGISTRO_DEMO = [
+  { hora: "06:12", texto: "Dos cosas quedaron a tu nombre: el riego de Vega Baja y el corte de Cañada Honda." },
+  { hora: "06:07", texto: "Cambió el pronóstico: el jueves pasa de 12 a 18 mm de lluvia." },
+  { hora: "06:03", texto: "Cambio de batería del sensor de Corral Nuevo agendado con el pesaje de la tarde." },
+  { hora: "05:59", texto: "Aviso de entrada enviado a la cuadrilla activa de hoy." },
+  { hora: "05:58", texto: "Plan del día reordenado: drenaje de Vega Baja a las 6:00." },
+  { hora: "05:30", texto: "Barrido de los 6 lotes y 6 sensores: uno sin señal." }
+];
+
+/** Preguntas rápidas sugeridas debajo del cuadro de chat. */
+export const ATAJOS_DEMO = [
+  "¿riego hoy Vega Baja?",
+  "¿cómo está el sensor de Vega Baja?",
+  "¿qué hago mañana?",
+  "¿cómo va la plata del mes?"
+];
