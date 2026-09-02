@@ -38,6 +38,34 @@ const esc = (v) =>
 /** Recorta y añade elipsis para las listas compactas de la barra lateral. */
 const corto = (v, n) => (v.length > n ? v.slice(0, n) + "…" : v);
 
+/** Marcado inline: negrita, cursiva, código. Opera sobre texto ya escapado. */
+const mdInline = (s) =>
+  s
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+    .replace(/`(.+?)`/g, "<code>$1</code>")
+    .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, "<em>$1</em>");
+
+/** Markdown mínimo (negrita/cursiva/código, listas "- item", párrafos) para
+ *  texto libre del agente. Escapa primero, así que sigue siendo seguro para
+ *  cualquier texto que venga de la API. */
+function md(raw) {
+  const lineas = esc(raw).split("\n");
+  let html = "";
+  let enLista = false;
+  for (const linea of lineas) {
+    const item = linea.match(/^\s*[-*]\s+(.*)/);
+    if (item) {
+      if (!enLista) { html += "<ul>"; enLista = true; }
+      html += `<li>${mdInline(item[1])}</li>`;
+      continue;
+    }
+    if (enLista) { html += "</ul>"; enLista = false; }
+    html += linea.trim() === "" ? "" : `<p>${mdInline(linea)}</p>`;
+  }
+  if (enLista) html += "</ul>";
+  return html;
+}
+
 /** Convierte una serie de valores en puntos de polilínea SVG. */
 function spark(serie, w, h) {
   const max = Math.max(...serie), min = Math.min(...serie), span = (max - min) || 1;
@@ -59,14 +87,45 @@ const S = {
   lote: "B-1",
   hilo: [],               // ver cargarHilo() — hoy es HILO_DEMO, mañana un fetch
   decisiones: {},         // ancla -> "aprobada" | "descartada" | "pendiente"
-  embeds: {},             // ancla -> propuesta desplegada en el hilo del chat
   chips: {},              // clave -> chip desplegado
   conectado: null,
   chat: {
     mensajes: [{ rol: "lia", texto: SALUDO_LIA }],
-    enviando: false
+    enviando: false,
+    etapa: 0
   }
 };
+
+/**
+ * El puente no manda ningún progreso real (ver agent-bridge-service):
+ * es un solo POST que responde entero al final, entre 6 y 25s. Estas
+ * etapas son cosméticas — turnos de tiempo, no señales del agente —
+ * para que la espera no se sienta como una página colgada.
+ */
+const ETAPAS_ESPERA = [
+  "LIA está pensando…",
+  "Revisando los sensores…",
+  "Cruzando el clima y el plan del día…",
+  "Redactando la respuesta…"
+];
+const ETAPA_MS = 4500;
+let etapaTimer = null;
+
+function iniciarEtapas() {
+  S.chat.etapa = 0;
+  clearInterval(etapaTimer);
+  etapaTimer = setInterval(() => {
+    if (S.chat.etapa < ETAPAS_ESPERA.length - 1) {
+      S.chat.etapa += 1;
+      render();
+    }
+  }, ETAPA_MS);
+}
+
+function detenerEtapas() {
+  clearInterval(etapaTimer);
+  etapaTimer = null;
+}
 
 /**
  * Único punto de entrada del hilo de hoy (notas + propuestas del agente).
@@ -253,9 +312,7 @@ function renderChatCima() {
       <span class="mono chat-fecha">${esc(HORA_FMT.format(new Date()))}</span>
       <span class="chat-linea"></span>
       <button type="button" class="pastilla" data-accion="datos">${S.datos ? "esconder los números" : "ver los números"}</button>
-    </div>
-    <p class="chat-briefing">${esc(BRIEFING_DEMO.titulo)}</p>
-    <p class="chat-briefing-detalle">${esc(BRIEFING_DEMO.detalle)}</p>`;
+    </div>`;
 }
 
 function renderChatDatos() {
@@ -336,75 +393,11 @@ const ESTADO_TEXTO = {
   programado: "agendado para las 15:00", hecho: "hecho · reversible"
 };
 
-function accionEmbedHtml(h) {
-  const modo = modoDe(h.ancla, h.modo);
-  const acento = modo === "descartada" ? C.mute : TONO_PROPUESTA[h.tono];
-  const abierto = !!S.embeds[h.ancla];
-
-  if (!abierto) {
-    const etiqueta = modo === "pendiente" ? "propuesta esperándote" : "propuesta · " + ESTADO_TEXTO[modo];
-    return `
-      <button type="button" class="embed-pastilla" data-accion="embed" data-ancla="${h.ancla}">
-        <i style="background:${acento}"></i>
-        <span class="mono">${esc(etiqueta)}</span>
-        <span class="mono embed-flecha">↓</span>
-      </button>`;
-  }
-
-  return `
-    <div class="embed-tarjeta">
-      <div class="embed-cab">
-        <span class="mono embed-etiqueta">propuesta</span>
-        <button type="button" class="embed-ocultar mono" data-accion="embed" data-ancla="${h.ancla}">ocultar ↑</button>
-      </div>
-      <div class="embed-meta mono">
-        <span>${esc(h.impacto)}</span>
-        <span class="embed-punto">·</span>
-        <span>seguridad <span style="color:${acento}">${h.confianza}%</span></span>
-      </div>
-      ${modo === "pendiente" ? `
-        <div class="embed-acciones">
-          <button type="button" class="btn btn-hazlo" data-accion="decision" data-ancla="${h.ancla}" data-valor="aprobada">Dale, hazlo</button>
-          <button type="button" class="btn btn-no" data-accion="decision" data-ancla="${h.ancla}" data-valor="descartada">Mejor no</button>
-        </div>` : `
-        <div class="embed-resuelta">
-          <span class="mono" style="color:${acento}">${esc(ESTADO_TEXTO[modo])}</span>
-          <button type="button" class="embed-deshacer mono" data-accion="decision" data-ancla="${h.ancla}" data-valor="pendiente">deshacer</button>
-        </div>`}
-    </div>`;
-}
-
 function renderChatHilo() {
   const caja = $("wk-chat-hilo");
   const alFinal = caja.scrollHeight - caja.scrollTop - caja.clientHeight < 60;
 
-  const hiloHtml = S.hilo.map((h) => {
-    if (h.tipo === "nota") {
-      return `<div class="hilo-nota" id="${h.ancla}">
-        <span class="mono hilo-nota-hora">${h.hora}</span>
-        <i></i>
-        <span class="hilo-nota-texto">${esc(h.texto)}</span>
-        <span class="hilo-nota-linea"></span>
-      </div>`;
-    }
-    const modo = modoDe(h.ancla, h.modo);
-    return `<div class="hilo-msg" id="${h.ancla}">
-      <span class="hilo-avatar">L</span>
-      <div class="hilo-burbuja">
-        <div class="hilo-burbuja-cab">
-          <span class="hilo-quien">LIA</span>
-          <span class="hilo-tag mono">${esc(h.tag)}</span>
-          <span class="mono hilo-hora">${h.hora}</span>
-        </div>
-        <p class="hilo-lead">${esc(h.lead)}</p>
-        <p class="hilo-texto">${esc(h.texto)}</p>
-        ${chipsHtml(h.chips, h.ancla)}
-        ${accionEmbedHtml(h)}
-      </div>
-    </div>`;
-  }).join("");
-
-  const chatHtml = S.chat.mensajes.map((m, i) => {
+  const chatHtml = S.chat.mensajes.map((m) => {
     const clase = m.rol === "yo" ? "yo" : m.rol === "error" ? "lia error" : "lia";
     if (m.rol === "yo") {
       return `<div class="hilo-yo"><div class="hilo-burbuja-yo">${esc(m.texto)}</div></div>`;
@@ -413,12 +406,12 @@ function renderChatHilo() {
       <span class="hilo-avatar">L</span>
       <div class="hilo-burbuja ${clase === "lia error" ? "hilo-burbuja-error" : ""}">
         <div class="hilo-burbuja-cab"><span class="hilo-quien">LIA</span><span class="mono hilo-hora">ahora</span></div>
-        <p class="hilo-texto hilo-texto-libre">${esc(m.texto)}</p>
+        <div class="hilo-texto hilo-texto-libre">${md(m.texto)}</div>
       </div>
     </div>`;
-  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar">L</span><div class="hilo-burbuja hilo-pensando mono">LIA está pensando…</div></div>` : "");
+  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar">L</span><div class="hilo-burbuja hilo-pensando mono">${esc(ETAPAS_ESPERA[S.chat.etapa])}</div></div>` : "");
 
-  caja.innerHTML = hiloHtml + `<div class="hilo-separador"><span>${esc(HORA_FMT.format(new Date()))} · conversación en vivo</span></div>` + chatHtml;
+  caja.innerHTML = chatHtml;
 
   if (alFinal) caja.scrollTop = caja.scrollHeight;
 }
@@ -456,6 +449,8 @@ function renderHistorial() {
         <span class="mono historial-hora">${h.hora}</span>
       </div>
       <button type="button" class="historial-titulo" data-accion="ir-hilo" data-ancla="${h.ancla}">${esc(h.lead)}</button>
+      <p class="historial-texto">${esc(h.texto)}</p>
+      ${chipsHtml(h.chips, h.ancla)}
       <div class="historial-meta">
         <span class="mono">${modo === "pendiente" ? "esperándote" : esc(ESTADO_TEXTO[modo])}</span>
         <span class="mono" style="color:${acento}; margin-left:auto">seguridad ${h.confianza}%</span>
@@ -468,10 +463,17 @@ function renderHistorial() {
     </div>`;
   }).join("");
 
+  const notas = S.hilo.filter((h) => h.tipo === "nota");
+
   $("wk-vista-historial").innerHTML = `
     <div class="historial-cima">
       <span class="historial-titulo-vista">Historial de acciones</span>
       <span class="mono historial-resumen">${ejecutadas} hechas · ${pendientes} esperando</span>
+    </div>
+    <div class="historial-resumen-dia">
+      <p class="historial-resumen-titulo">${esc(BRIEFING_DEMO.titulo)}</p>
+      <p class="historial-resumen-detalle">${esc(BRIEFING_DEMO.detalle)}</p>
+      ${notas.map((n) => `<p class="mono historial-resumen-nota"><span class="hilo-nota-hora">${n.hora}</span> ${esc(n.texto)}</p>`).join("")}
     </div>
     <p class="historial-nota">Todo lo que LIA propuso o hizo hoy, de lo más reciente a lo más viejo.</p>
     <div class="historial-lista">${lista}</div>`;
@@ -584,7 +586,7 @@ function accionDe(target) {
 }
 
 function irAAncla(ancla) {
-  set({ vista: "chat" });
+  set({ vista: "historial" });
   requestAnimationFrame(() => {
     const el = $(ancla);
     if (el) {
@@ -620,10 +622,6 @@ document.addEventListener("click", (e) => {
 
     case "chip":
       set({ chips: { ...S.chips, [el.dataset.clave]: !S.chips[el.dataset.clave] } });
-      break;
-
-    case "embed":
-      set({ embeds: { ...S.embeds, [el.dataset.ancla]: !S.embeds[el.dataset.ancla] } });
       break;
 
     case "decision":
@@ -675,6 +673,7 @@ async function enviarDesdeInput(textoForzado) {
   input.value = "";
   S.chat.mensajes.push({ rol: "yo", texto });
   S.chat.enviando = true;
+  iniciarEtapas();
   render();
   $("wk-chat-hilo").scrollTop = $("wk-chat-hilo").scrollHeight;
 
@@ -691,6 +690,7 @@ async function enviarDesdeInput(textoForzado) {
     });
     S.conectado = false;
   } finally {
+    detenerEtapas();
     S.chat.enviando = false;
     render();
     $("wk-chat-input").focus();
