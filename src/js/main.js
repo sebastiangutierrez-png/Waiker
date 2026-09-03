@@ -1,7 +1,7 @@
 import { enviarMensaje, hayConexion } from "./api.js";
 import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR } from "./data.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
-import { iniciarSincronizacionPronostico } from "./sheetPronostico.js";
+import { iniciarSincronizacionClima } from "./climaApi.js";
 
 const navButtons = document.querySelectorAll(".csb-nav [data-page]");
 const pages = document.querySelectorAll(".page");
@@ -390,5 +390,5 @@ iniciarSincronizacionSensores(SENSORES, () => {
   renderSensoresPagina();
   marcarSincronizado();
 });
-iniciarSincronizacionPronostico(renderPronostico);
+iniciarSincronizacionClima(renderPronostico);
 
