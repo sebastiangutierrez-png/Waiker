@@ -1,719 +1,508 @@
-// ─────────────────────────────────────────────────────────────
-//  Waiker · LIA, el agente de la finca Agromyss
-//
-//  Estado en memoria + render completo en cada cambio.
-//  Sin framework ni paso de compilación: el Worker sirve estos
-//  archivos tal cual.
-//
-//  El hilo de "hoy" (HILO_DEMO) es contenido de muestra — ver la
-//  nota en data.js. El chat de abajo SÍ está conectado de verdad:
-//  cada pregunta pasa por enviarMensaje() → Worker → agent-bridge
-//  → agente OpenClaw. Las propuestas (aprobar / descartar) todavía
-//  viven sólo en el navegador: no hay endpoint que las reciba aún,
-//  así que la decisión es local y optimista, igual que antes.
-// ─────────────────────────────────────────────────────────────
-
-import {
-  C, FINCA, LOTES, SENSORES, COLOR_SENSOR, CLIMA, CUADRILLA,
-  TONO_PROPUESTA, SALUDO_LIA, BRIEFING_DEMO, HILO_DEMO, REGISTRO_DEMO, ATAJOS_DEMO
-} from "./data.js";
-
 import { enviarMensaje, hayConexion } from "./api.js";
+import { HILO_DEMO, REGISTRO_DEMO } from "./data.js";
 
-// ═══════════ utilidades ═══════════
+const navButtons = document.querySelectorAll(".nav button");
+const pages = document.querySelectorAll(".page");
 
-const $ = (id) => document.getElementById(id);
+let aiMessageLocked = false;
+let booting = true;
 
-/** Escapa texto antes de interpolarlo en HTML.
- *  Obligatorio para todo lo que venga de la API: el agente genera
- *  texto libre y no debe poder inyectar marcado. */
-const esc = (v) =>
-  String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-
-/** Recorta y añade elipsis para las listas compactas de la barra lateral. */
-const corto = (v, n) => (v.length > n ? v.slice(0, n) + "…" : v);
-
-/** Marcado inline: negrita, cursiva, código. Opera sobre texto ya escapado. */
-const mdInline = (s) =>
-  s
-    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-    .replace(/`(.+?)`/g, "<code>$1</code>")
-    .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, "<em>$1</em>");
-
-/** Markdown mínimo (negrita/cursiva/código, listas "- item", párrafos) para
- *  texto libre del agente. Escapa primero, así que sigue siendo seguro para
- *  cualquier texto que venga de la API. */
-function md(raw) {
-  const lineas = esc(raw).split("\n");
-  let html = "";
-  let enLista = false;
-  for (const linea of lineas) {
-    const item = linea.match(/^\s*[-*]\s+(.*)/);
-    if (item) {
-      if (!enLista) { html += "<ul>"; enLista = true; }
-      html += `<li>${mdInline(item[1])}</li>`;
-      continue;
-    }
-    if (enLista) { html += "</ul>"; enLista = false; }
-    html += linea.trim() === "" ? "" : `<p>${mdInline(linea)}</p>`;
-  }
-  if (enLista) html += "</ul>";
-  return html;
-}
-
-/** Convierte una serie de valores en puntos de polilínea SVG. */
-function spark(serie, w, h) {
-  const max = Math.max(...serie), min = Math.min(...serie), span = (max - min) || 1;
-  return serie
-    .map((v, i) => `${(i * (w / (serie.length - 1))).toFixed(1)},${((h - 1) - ((v - min) / span) * (h - 3)).toFixed(1)}`)
-    .join(" ");
-}
-
-const HORA_FMT = new Intl.DateTimeFormat("es-CO", { hour: "2-digit", minute: "2-digit", hour12: false });
-
-// ═══════════ estado ═══════════
-
-const S = {
-  tema: null,           // "light" | "dark" — null usa el guardado o "light"
-  vista: "chat",         // "chat" | "historial"
-  drawer: false,
-  filtro: "espera",      // "espera" | "hecho" | "todo"
-  datos: false,
-  lote: "B-1",
-  hilo: [],               // ver cargarHilo() — hoy es HILO_DEMO, mañana un fetch
-  decisiones: {},         // ancla -> "aprobada" | "descartada" | "pendiente"
-  chips: {},              // clave -> chip desplegado
-  conectado: null,
-  chat: {
-    mensajes: [{ rol: "lia", texto: SALUDO_LIA }],
-    enviando: false,
-    etapa: 0
-  }
-};
+/** Historial de conversación por caja de chat (Comando LIA / Asistente). */
+const historiales = { aiMessage: [], bigAiMessage: [] };
 
 /**
- * El puente no manda ningún progreso real (ver agent-bridge-service):
- * es un solo POST que responde entero al final, entre 6 y 25s. Estas
- * etapas son cosméticas — turnos de tiempo, no señales del agente —
- * para que la espera no se sienta como una página colgada.
- */
-const ETAPAS_ESPERA = [
-  "LIA está pensando…",
-  "Revisando los sensores…",
-  "Cruzando el clima y el plan del día…",
-  "Redactando la respuesta…"
-];
-const ETAPA_MS = 4500;
-let etapaTimer = null;
-
-function iniciarEtapas() {
-  S.chat.etapa = 0;
-  clearInterval(etapaTimer);
-  etapaTimer = setInterval(() => {
-    if (S.chat.etapa < ETAPAS_ESPERA.length - 1) {
-      S.chat.etapa += 1;
-      render();
-    }
-  }, ETAPA_MS);
-}
-
-function detenerEtapas() {
-  clearInterval(etapaTimer);
-  etapaTimer = null;
-}
-
-/**
- * Único punto de entrada del hilo de hoy (notas + propuestas del agente).
+ * Hilo de propuestas del agente + registro de decisiones, para la pestaña
+ * Asistente ("Acciones sugeridas" / "Rastreo de decisiones").
  *
- * TODO: cuando exista un endpoint real para propuestas/historial, esta es
- * la función a cambiar — reemplazar el valor de HILO_DEMO por la respuesta
- * de la API, conservando la forma de cada entrada (ver el comentario junto
- * a HILO_DEMO en data.js). El resto de main.js sólo lee S.hilo / acciones(),
+ * TODO: cuando exista un endpoint real para propuestas/historial, éste es
+ * el punto a cambiar — reemplazar HILO_DEMO/REGISTRO_DEMO (ver data.js) por
+ * la respuesta de la API. El resto del archivo sólo lee hilo()/decisiones,
  * así que no debería hacer falta tocar nada más.
  */
-async function cargarHilo() {
-  S.hilo = HILO_DEMO.map((h, i) => ({ ...h, ancla: "acc-" + i }));
+let hilo = [];
+const decisiones = {};
+
+function cargarHilo() {
+  hilo = HILO_DEMO.map((h, i) => ({ ...h, ancla: "acc-" + i }));
 }
 
-/** Sólo las entradas del hilo que son propuestas del agente (no notas). */
 function acciones() {
-  return S.hilo.filter((h) => h.tipo === "accion");
+  return hilo.filter((h) => h.tipo === "accion");
 }
 
-function set(parche) {
-  Object.assign(S, parche);
-  render();
+function modoDe(h) {
+  return decisiones[h.ancla] || h.modo;
 }
 
-function temaActual() {
-  return S.tema || "light";
+function decidir(ancla, valor) {
+  decisiones[ancla] = valor;
+  renderAcciones();
+  renderTimeline();
 }
+window.decidir = decidir;
 
-function modoDe(ancla, modoOriginal) {
-  return S.decisiones[ancla] || modoOriginal;
-}
+document.body.classList.add("is-booting");
 
-// ═══════════ chips (sensor / lote / clima) ═══════════
-
-function chip(w, ctx) {
-  const clave = ctx + ":" + w.kind + ":" + (w.id || "");
-  const abierto = !!S.chips[clave];
-  const toggle = () => set({ chips: { ...S.chips, [clave]: !abierto } });
-
-  if (w.kind === "sensor") {
-    const sn = SENSORES.find((x) => x.id === w.id) || SENSORES[0];
-    const color = COLOR_SENSOR[sn.estado];
-    return {
-      clave, abierto, color, label: sn.id, valor: sn.valor + sn.unidad,
-      detalle: `${sn.lugar} · pila ${sn.bateria}% · leído ${sn.visto}`,
-      spark: spark(sn.serie, 34, 12)
-    };
-  }
-  if (w.kind === "lote") {
-    const l = LOTES.find((x) => x.id === w.id) || LOTES[0];
-    return {
-      clave, abierto, color: estadoColor(l.estado), label: l.id, valor: l.humedad + "%",
-      detalle: `${l.nombre} · ${l.cultivo.toLowerCase()} · ${l.kg} kg en campaña`,
-      spark: null
-    };
-  }
-  // clima
-  const jue = CLIMA.find(([d]) => d === "Jue");
-  return {
-    clave, abierto, color: C.water, label: "lluvia 7 d", valor: CLIMA.reduce((a, [, mm]) => a + mm, 0) + " mm",
-    detalle: `jue ${jue ? jue[1] : "—"} mm · el resto de la semana por debajo de 12 mm`,
-    spark: null
-  };
-}
-
-function estadoColor(estado) {
-  return estado === "Óptima" ? C.leaf : estado === "Límite" ? C.wheat : C.clay;
-}
-
-// ═══════════ render: barra lateral ═══════════
-
-function renderTema() {
-  const oscuro = temaActual() === "dark";
-  document.documentElement.dataset.tema = oscuro ? "dark" : "light";
-  const btn = $("wk-tema-btn");
-  btn.textContent = oscuro ? "☀" : "☾";
-  btn.title = oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
-}
-
-function renderLiaTarjeta() {
-  const pendientes = acciones().filter((h) => modoDe(h.ancla, h.modo) === "pendiente").length;
-  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
-
-  $("wk-lia-tarjeta").innerHTML = `
-    <div class="lia-fila">
-      <span class="lia-punto"></span>
-      <div>
-        <div class="lia-nombre">LIA <span class="lia-insignia">IA</span></div>
-        <div class="lia-sub mono">openclaw · en turno</div>
-      </div>
-    </div>
-    <p class="lia-estado">Te avisa antes de tocar riego o corte; el resto lo ordena sola y te lo cuenta después.</p>
-    <div class="lia-stats">
-      <button type="button" data-accion="drawer-filtro" data-valor="espera">
-        <span class="lia-stat-num mono" style="color:${C.wheat}">${pendientes}</span>
-        <span class="lia-stat-txt">te espera<br />a ti</span>
-      </button>
-      <button type="button" data-accion="drawer-filtro" data-valor="hecho">
-        <span class="lia-stat-num mono" style="color:${C.leaf}">${ejecutadas}</span>
-        <span class="lia-stat-txt">ya lo hizo<br />LIA</span>
-      </button>
-    </div>`;
-}
-
-function renderNav() {
-  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
-  const items = [
-    ["chat", "Chat con LIA", null],
-    ["historial", "Historial de acciones", ejecutadas]
-  ];
-  $("wk-lia-nav").innerHTML = items.map(([id, label, badge]) => `
-    <button type="button" data-accion="vista" data-valor="${id}" class="${S.vista === id ? "activo" : ""}">
-      <span class="nav-punto"></span>
-      <span>${label}</span>
-      ${badge != null ? `<span class="nav-insignia">${badge}</span>` : ""}
-    </button>`).join("");
-}
-
-function renderRecientes() {
-  const recientes = S.hilo.filter((h) => h.tipo === "accion").slice().reverse().slice(0, 3);
-  $("wk-lia-recientes").innerHTML = `
-    <div class="lat-titulo">últimas acciones</div>
-    <div class="recientes-lista">
-      ${recientes.map((h) => `
-        <button type="button" data-accion="ir-hilo" data-ancla="${h.ancla}">
-          <i style="background:${modoDe(h.ancla, h.modo) === "descartada" ? C.mute : TONO_PROPUESTA[h.tono]}"></i>
-          <span class="mono recientes-hora">${h.hora}</span>
-          <span class="recientes-titulo">${esc(corto(h.lead, 30))}</span>
-        </button>`).join("")}
-    </div>`;
-}
-
-function renderPulso() {
-  const kgCampana = LOTES.reduce((a, l) => a + l.kg, 0);
-  const jueves = CLIMA.find(([d]) => d === "Jue");
-  const peorLote = LOTES.slice().sort((a, b) => b.humedad - a.humedad)[0];
-
-  const filas = [
-    ["Kg de campaña", C.leaf, kgCampana.toLocaleString("es-CO")],
-    ["Lluvia jueves", C.water, (jueves ? jueves[1] : 0) + " mm"],
-    ["Lote a vigilar", estadoColor(peorLote.estado), peorLote.id],
-    ["Cuadrilla activa", C.wheat, CUADRILLA.length + " personas"]
-  ];
-
-  $("wk-lia-pulso").innerHTML = `
-    <div class="lat-titulo">la finca ahora</div>
-    <div class="pulso-lista">
-      ${filas.map(([etq, color, val]) => `
-        <div class="pulso-fila">
-          <i style="background:${color}"></i>
-          <span class="pulso-etiqueta">${etq}</span>
-          <span class="mono pulso-valor">${val}</span>
-        </div>`).join("")}
-    </div>`;
-}
-
-function renderUsuario() {
-  const { iniciales, nombre } = FINCA.usuario;
-  $("wk-lia-usuario").innerHTML = `
-    <span class="usuario-avatar">${esc(iniciales)}</span>
-    <div style="min-width:0">
-      <div class="usuario-nombre">${esc(nombre)}</div>
-      <div class="mono usuario-finca">${esc(FINCA.nombre)} · ${esc(FINCA.detalle.split(" · ")[0])}</div>
-    </div>`;
-  $("wk-finca-movil").textContent = FINCA.nombre;
-}
-
-// ═══════════ render: aviso de conexión ═══════════
-
-function renderAviso() {
-  const el = $("wk-aviso");
-  if (S.conectado === null) { el.hidden = true; return; }
-  el.hidden = false;
-  el.innerHTML = S.conectado
-    ? `<i style="background:${C.leaf}"></i> Conectada con el agente vía agent-bridge.`
-    : `<i style="background:${C.clay}"></i> Sin conexión con el agente todavía — el chat no va a responder hasta que el Worker /api esté desplegado. El hilo de hoy que ves abajo es de muestra.`;
-}
-
-// ═══════════ render: cima del chat + panel de datos ═══════════
-
-function renderChatCima() {
-  $("wk-chat-cima").innerHTML = `
-    <div class="chat-cima-fila">
-      <span class="mono chat-fecha">${esc(HORA_FMT.format(new Date()))}</span>
-      <span class="chat-linea"></span>
-      <button type="button" class="pastilla" data-accion="datos">${S.datos ? "esconder los números" : "ver los números"}</button>
-    </div>`;
-}
-
-function renderChatDatos() {
-  const panel = $("wk-chat-datos");
-  panel.hidden = !S.datos;
-  if (!S.datos) return;
-
-  const l = LOTES.find((x) => x.id === S.lote) || LOTES[0];
-  const lluviaMax = Math.max(...CLIMA.map(([, mm]) => mm), 1);
-  const enLinea = SENSORES.filter((s) => s.estado !== "sin señal").length;
-
-  panel.innerHTML = `
-    <div class="datos-cab">
-      <span class="mono datos-titulo">lotes · humedad</span>
-      <span class="mono datos-nota">${esc(l.id)} · ${l.humedad}%</span>
-    </div>
-    <div class="datos-lotes">
-      ${LOTES.map((x) => `
-        <button type="button" class="datos-lote ${x.id === S.lote ? "activo" : ""}" data-accion="lote" data-id="${x.id}">
-          <i style="background:${estadoColor(x.estado)}"></i>
-          <span class="mono">${x.id}</span>
-          <span class="datos-lote-nombre">${esc(x.nombre)}</span>
-          <span class="datos-lote-barra"><span style="width:${Math.min(100, Math.round((x.humedad / 60) * 100))}%; background:${estadoColor(x.estado)}"></span></span>
-          <span class="mono">${x.humedad}%</span>
-        </button>`).join("")}
-    </div>
-
-    <div class="datos-cab" style="margin-top:12px">
-      <span class="mono datos-titulo">lluvia · 7 días</span>
-      <span class="mono datos-nota" style="color:${C.water}">${CLIMA.reduce((a, [, mm]) => a + mm, 0)} mm</span>
-    </div>
-    <svg viewBox="0 0 300 46" class="datos-clima" preserveAspectRatio="none">
-      <line x1="0" y1="34" x2="300" y2="34" stroke="var(--linea-suave)" stroke-width="1"></line>
-      ${CLIMA.map(([dia, mm], i) => {
-        const h = Math.max(2, (mm / lluviaMax) * 24);
-        const x = 8 + i * 42;
-        return `<g>
-          <rect x="${x}" y="${(34 - h).toFixed(1)}" width="24" height="${h.toFixed(1)}" fill="${C.water}" rx="2"></rect>
-          <text x="${x + 12}" y="${(34 - h - 3).toFixed(1)}" text-anchor="middle" font-family="DM Mono" font-size="7.5" fill="${C.water}">${mm}mm</text>
-          <text x="${x + 12}" y="44" text-anchor="middle" font-family="DM Mono" font-size="8" fill="var(--apagado)">${dia}</text>
-        </g>`;
-      }).join("")}
-    </svg>
-
-    <div class="datos-sensores">
-      <span class="mono datos-titulo">sensores</span>
-      <span class="datos-sensores-puntos">
-        ${SENSORES.map((s) => `<i title="${esc(s.id + " · " + s.lugar + " · " + s.valor + s.unidad)}" style="background:${COLOR_SENSOR[s.estado]}"></i>`).join("")}
-      </span>
-      <span class="mono datos-sensores-resumen">${enLinea} en línea · ${SENSORES.length - enLinea} sin señal</span>
-    </div>`;
-}
-
-// ═══════════ render: hilo del chat ═══════════
-
-function chipsHtml(chips, ctx) {
-  if (!chips || !chips.length) return "";
-  return `<div class="hilo-chips">
-    ${chips.map((w) => {
-      const c = chip(w, ctx);
-      return `
-      <div class="chip-envoltorio">
-        <button type="button" class="chip" data-accion="chip" data-clave="${esc(c.clave)}" style="border-color:${c.abierto ? c.color : "var(--linea-fuerte)"}">
-          <i style="background:${c.color}"></i>
-          <span class="mono">${esc(c.label)}</span>
-          <span class="mono" style="color:${c.color}">${esc(c.valor)}</span>
-          ${c.spark ? `<svg viewBox="0 0 34 12" class="chip-spark"><polyline fill="none" stroke="${c.color}" stroke-width="1.2" points="${c.spark}"></polyline></svg>` : ""}
-          <span class="mono chip-mas">${c.abierto ? "−" : "+"}</span>
-        </button>
-        ${c.abierto ? `<div class="chip-detalle mono">${esc(c.detalle)}</div>` : ""}
-      </div>`;
-    }).join("")}
-  </div>`;
-}
-
-const ESTADO_TEXTO = {
-  aprobada: "listo, va en camino", descartada: "descartado, no lo toco",
-  programado: "agendado para las 15:00", hecho: "hecho · reversible"
+const demoState = {
+  home: {
+    moisture: 64,
+    temperature: 27,
+    wind: "NE",
+    tasks: 12,
+    risk: 72,
+    connectivity: 98,
+  },
+  sensors: [
+    {
+      label: "Nodo A-12",
+      title: "Humedad suelo",
+      value: "64%",
+      meta: "Lote A · Cacao",
+      tone: "stable",
+    },
+    {
+      label: "Nodo B-07",
+      title: "Humedad suelo",
+      value: "41%",
+      meta: "Lote B · Mango",
+      tone: "warning",
+    },
+    {
+      label: "Estación 01",
+      title: "Temperatura",
+      value: "27°C",
+      meta: "Humedad ambiente 71%",
+      tone: "blue",
+    },
+    {
+      label: "Gateway",
+      title: "Conectividad",
+      value: "Online",
+      meta: "Último paquete hace 18 s",
+      tone: "danger",
+    },
+  ],
+  pipeline: [
+    {
+      title: "Sensores",
+      text: "Humedad, temperatura, lluvia, batería, GPS",
+    },
+    {
+      title: "Gateway",
+      text: "ESP32 / Raspberry Pi / módem 4G",
+    },
+    {
+      title: "Servidor",
+      text: "API, base de datos y reglas de alerta",
+    },
+    {
+      title: "Dashboard",
+      text: "Cards, gráficas, historial y mensajería",
+    },
+  ],
+  readings: [
+    {
+      title: "Lote B · humedad",
+      text: "41% · 08:12 · alerta amarilla",
+    },
+    {
+      title: "Lote A · temperatura",
+      text: "27°C · 08:11 · estable",
+    },
+    {
+      title: "Zona hídrica · lluvia",
+      text: "0.2 mm · 08:10 · sin riesgo",
+    },
+    {
+      title: "Gateway principal",
+      text: "98% batería · 08:09 · online",
+    },
+  ],
+  features: [
+    {
+      title: "Estado por lote",
+      text: "Un resumen rápido de cada lote con sensores, fotos y alertas.",
+    },
+    {
+      title: "Trazabilidad completa",
+      text: "Registro de labores, insumos, clima y eventos de campo.",
+    },
+    {
+      title: "Acción sugerida",
+      text: "El sistema puede proponer tareas y mensajes para el equipo.",
+    },
+  ],
+  trend: {
+    moisture: [62, 63, 61, 60, 58, 57, 59, 61, 64, 66, 67, 65],
+    temperature: [26, 26, 25, 25, 26, 27, 27, 28, 28, 27, 27, 26],
+  },
 };
 
-function renderChatHilo() {
-  const caja = $("wk-chat-hilo");
-  const alFinal = caja.scrollHeight - caja.scrollTop - caja.clientHeight < 60;
+navButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    openPage(button.dataset.page);
+  });
+});
 
-  const chatHtml = S.chat.mensajes.map((m) => {
-    const clase = m.rol === "yo" ? "yo" : m.rol === "error" ? "lia error" : "lia";
-    if (m.rol === "yo") {
-      return `<div class="hilo-yo"><div class="hilo-burbuja-yo">${esc(m.texto)}</div></div>`;
-    }
-    return `<div class="hilo-msg">
-      <span class="hilo-avatar">L</span>
-      <div class="hilo-burbuja ${clase === "lia error" ? "hilo-burbuja-error" : ""}">
-        <div class="hilo-burbuja-cab"><span class="hilo-quien">LIA</span><span class="mono hilo-hora">ahora</span></div>
-        <div class="hilo-texto hilo-texto-libre">${md(m.texto)}</div>
-      </div>
-    </div>`;
-  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar">L</span><div class="hilo-burbuja hilo-pensando mono">${esc(ETAPAS_ESPERA[S.chat.etapa])}</div></div>` : "");
+function openPage(pageId) {
+  navButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.page === pageId);
+  });
 
-  caja.innerHTML = chatHtml;
+  pages.forEach((page) => {
+    page.classList.toggle("active", page.id === pageId);
+  });
 
-  if (alFinal) caja.scrollTop = caja.scrollHeight;
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function renderChatPie() {
-  const oculto = S.vista !== "chat";
-  $("wk-chat-pie").hidden = oculto;
-  if (oculto) return;
-
-  $("wk-chat-atajos").innerHTML = ATAJOS_DEMO.slice(0, 2).map((a) =>
-    `<button type="button" class="pastilla" data-accion="atajo" data-valor="${esc(a)}">${esc(a)}</button>`).join("");
-
-  $("wk-chat-estado") && ($("wk-chat-estado").textContent = S.conectado ? "en línea" : "sin conexión");
-  $("wk-chat-input").disabled = S.chat.enviando;
-  $("wk-chat-enviar").disabled = S.chat.enviando;
-}
-
-// ═══════════ render: historial ═══════════
-
-function renderHistorial() {
-  const oculto = S.vista !== "historial";
-  $("wk-vista-historial").hidden = oculto;
-  if (oculto) return;
-
-  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
-  const pendientes = acciones().filter((h) => modoDe(h.ancla, h.modo) === "pendiente").length;
-
-  const lista = acciones().slice().reverse().map((h) => {
-    const modo = modoDe(h.ancla, h.modo);
-    const acento = modo === "descartada" ? C.mute : TONO_PROPUESTA[h.tono];
-    return `
-    <div class="historial-tarjeta" style="border-left-color:${acento}">
-      <div class="historial-cab">
-        <span class="mono historial-tag" style="color:${acento}">${esc(h.tag)}</span>
-        <span class="mono historial-hora">${h.hora}</span>
-      </div>
-      <button type="button" class="historial-titulo" data-accion="ir-hilo" data-ancla="${h.ancla}">${esc(h.lead)}</button>
-      <p class="historial-texto">${esc(h.texto)}</p>
-      ${chipsHtml(h.chips, h.ancla)}
-      <div class="historial-meta">
-        <span class="mono">${modo === "pendiente" ? "esperándote" : esc(ESTADO_TEXTO[modo])}</span>
-        <span class="mono" style="color:${acento}; margin-left:auto">seguridad ${h.confianza}%</span>
-      </div>
-      ${modo === "pendiente" ? `
-        <div class="embed-acciones" style="margin-top:9px">
-          <button type="button" class="btn btn-hazlo" data-accion="decision" data-ancla="${h.ancla}" data-valor="aprobada">Hazlo</button>
-          <button type="button" class="btn btn-no" data-accion="decision" data-ancla="${h.ancla}" data-valor="descartada">No</button>
-        </div>` : ""}
-    </div>`;
-  }).join("");
-
-  const notas = S.hilo.filter((h) => h.tipo === "nota");
-
-  $("wk-vista-historial").innerHTML = `
-    <div class="historial-cima">
-      <span class="historial-titulo-vista">Historial de acciones</span>
-      <span class="mono historial-resumen">${ejecutadas} hechas · ${pendientes} esperando</span>
-    </div>
-    <div class="historial-resumen-dia">
-      <p class="historial-resumen-titulo">${esc(BRIEFING_DEMO.titulo)}</p>
-      <p class="historial-resumen-detalle">${esc(BRIEFING_DEMO.detalle)}</p>
-      ${notas.map((n) => `<p class="mono historial-resumen-nota"><span class="hilo-nota-hora">${n.hora}</span> ${esc(n.texto)}</p>`).join("")}
-    </div>
-    <p class="historial-nota">Todo lo que LIA propuso o hizo hoy, de lo más reciente a lo más viejo.</p>
-    <div class="historial-lista">${lista}</div>`;
-}
-
-// ═══════════ render: propuestas (drawer) ═══════════
-
-function renderDrawer() {
-  const pendientes = acciones().filter((h) => modoDe(h.ancla, h.modo) === "pendiente").length;
-  const ejecutadas = acciones().filter((h) => ["hecho", "aprobada"].includes(modoDe(h.ancla, h.modo))).length;
-  const drawer = $("wk-drawer");
-  drawer.classList.toggle("abierto", S.drawer);
-
-  if (!S.drawer) {
-    drawer.innerHTML = `
-      <button type="button" class="drawer-pestana" data-accion="drawer-toggle" aria-label="Abrir propuestas">
-        <span class="drawer-pestana-fila">
-          <span class="drawer-insignia mono">${pendientes}</span>
-          <span class="drawer-pestana-txt">
-            <span class="drawer-pestana-titulo">Propuestas</span>
-            <span class="mono drawer-pestana-sub">${ejecutadas} hechas hoy</span>
-          </span>
-        </span>
-        <span class="drawer-puntos">
-          ${acciones().map((h) => {
-            const modo = modoDe(h.ancla, h.modo);
-            const color = modo === "pendiente" ? C.wheat : modo === "descartada" ? "var(--linea-fuerte)" : C.leaf;
-            return `<i style="background:${color}; opacity:${modo === "pendiente" ? 1 : 0.45}"></i>`;
-          }).join("")}
-        </span>
-        <span class="mono drawer-pestana-ver">Ver panel ‹</span>
-      </button>`;
-    return;
-  }
-
-  const visible = (m) => S.filtro === "todo" ? true : S.filtro === "espera" ? m === "pendiente" : m !== "pendiente";
-  const lista = acciones().filter((h) => visible(modoDe(h.ancla, h.modo))).slice().reverse().map((h) => {
-    const modo = modoDe(h.ancla, h.modo);
-    const acento = modo === "descartada" ? C.mute : TONO_PROPUESTA[h.tono];
-    return `
-    <div class="drawer-tarjeta" style="border-left-color:${acento}">
-      <div class="drawer-tarjeta-cab">
-        <span class="mono" style="color:${acento}">${esc(h.tag)}</span>
-        <span class="mono drawer-hora">${h.hora}</span>
-      </div>
-      <button type="button" class="drawer-titulo" data-accion="ir-hilo" data-ancla="${h.ancla}">${esc(h.lead)}</button>
-      <div class="drawer-tarjeta-meta">
-        <span class="mono">${modo === "pendiente" ? "esperándote" : esc(ESTADO_TEXTO[modo])}</span>
-        <span class="drawer-barra"><span style="width:${h.confianza}%; background:${acento}"></span></span>
-        <span class="mono" style="color:${acento}">${h.confianza}%</span>
-      </div>
-      ${modo === "pendiente" ? `
-        <div class="drawer-acciones">
-          <button type="button" class="btn btn-hazlo" data-accion="decision" data-ancla="${h.ancla}" data-valor="aprobada">Hazlo</button>
-          <button type="button" class="btn btn-no" data-accion="decision" data-ancla="${h.ancla}" data-valor="descartada">No</button>
-        </div>` : ""}
-    </div>`;
-  }).join("");
-
-  drawer.innerHTML = `
-    <div class="drawer-panel">
-      <div class="drawer-cab">
-        <span class="drawer-cab-titulo">Propuestas</span>
-        <span class="mono drawer-cab-insignia">${pendientes}</span>
-        <button type="button" class="drawer-cerrar" data-accion="drawer-toggle" aria-label="Cerrar propuestas">›</button>
-      </div>
-      <div class="drawer-filtros">
-        ${[["espera", "en espera"], ["hecho", "hechas"], ["todo", "todas"]].map(([id, label]) =>
-          `<button type="button" class="${S.filtro === id ? "activo" : ""}" data-accion="drawer-filtro" data-valor="${id}">${label}</button>`).join("")}
-      </div>
-      <div class="drawer-lista">${lista || `<p class="drawer-vacio mono">nada por aquí</p>`}</div>
-      <div class="drawer-registro">
-        <div class="lat-titulo">lo que hizo hoy</div>
-        ${REGISTRO_DEMO.map((r) => `
-          <div class="registro-fila">
-            <span class="mono registro-hora">${r.hora}</span>
-            <span class="registro-texto">${esc(r.texto)}</span>
-          </div>`).join("")}
-      </div>
-    </div>`;
-}
-
-// ═══════════ render maestro ═══════════
-
-function render() {
-  renderTema();
-  renderLiaTarjeta();
-  renderNav();
-  renderRecientes();
-  renderPulso();
-  renderUsuario();
-  renderAviso();
-
-  $("wk-vista-chat").hidden = S.vista !== "chat";
-  if (S.vista === "chat") {
-    renderChatCima();
-    renderChatDatos();
-    renderChatHilo();
-  }
-  renderHistorial();
-  renderChatPie();
-  renderDrawer();
-}
-
-// ═══════════ eventos ═══════════
-
-function accionDe(target) {
-  const el = target.closest?.("[data-accion]");
-  return el ? { el, accion: el.dataset.accion } : null;
-}
-
-function irAAncla(ancla) {
-  set({ vista: "historial" });
-  requestAnimationFrame(() => {
-    const el = $(ancla);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("hilo-foco");
-      setTimeout(() => el.classList.remove("hilo-foco"), 2200);
-    }
+function mockFetchTelemetry() {
+  return new Promise((resolve) => {
+    setTimeout(() => resolve(structuredClone(demoState)), 220);
   });
 }
 
-document.addEventListener("click", (e) => {
-  const hit = accionDe(e.target);
-  if (!hit) return;
-  const { el, accion } = hit;
+function renderSensorCard(containerId, sensor) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-  switch (accion) {
-    case "tema":
-      set({ tema: temaActual() === "light" ? "dark" : "light" });
-      try { window.localStorage.setItem("waiker-tema", S.tema); } catch { /* modo privado: seguimos sin recordar tema */ }
-      break;
-
-    case "vista":
-      set({ vista: el.dataset.valor });
-      break;
-
-    case "datos":
-      set({ datos: !S.datos });
-      break;
-
-    case "lote":
-      set({ lote: el.dataset.id });
-      break;
-
-    case "chip":
-      set({ chips: { ...S.chips, [el.dataset.clave]: !S.chips[el.dataset.clave] } });
-      break;
-
-    case "decision":
-      set({ decisiones: { ...S.decisiones, [el.dataset.ancla]: el.dataset.valor } });
-      break;
-
-    case "ir-hilo":
-      irAAncla(el.dataset.ancla);
-      break;
-
-    case "drawer-toggle":
-      set({ drawer: !S.drawer });
-      break;
-
-    case "drawer-filtro":
-      set({ drawer: true, filtro: el.dataset.valor });
-      break;
-
-    case "atajo":
-      enviarDesdeInput(el.dataset.valor);
-      break;
-
-    case "abrir-menu":
-      document.querySelector(".app").classList.add("menu-abierto");
-      $("lateral").querySelector("button")?.focus();
-      break;
-
-    case "cerrar-menu":
-      cerrarMenu();
-      break;
-  }
-});
-
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") cerrarMenu();
-});
-
-function cerrarMenu() {
-  document.querySelector(".app").classList.remove("menu-abierto");
+  container.innerHTML = `
+    <span class="pill ${sensor.tone === "warning" ? "yellow" : sensor.tone === "blue" ? "blue" : sensor.tone === "danger" ? "red" : ""}">${sensor.label}</span>
+    <h3>${sensor.title}</h3>
+    <p>${sensor.value}</p>
+    <small>${sensor.meta}</small>
+  `;
 }
 
-// ── asistente ──
+function renderList(containerId, items, className) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
 
-async function enviarDesdeInput(textoForzado) {
-  const input = $("wk-chat-input");
-  const texto = (textoForzado ?? input.value).trim();
-  if (!texto || S.chat.enviando) return;
+  container.innerHTML = items
+    .map(
+      (item) => `
+        <div class="${className}">
+          <strong>${item.title}</strong>
+          <span>${item.text}</span>
+        </div>
+      `,
+    )
+    .join("");
+}
 
+function renderTrendChart(svg, state) {
+  if (!svg) return;
+
+  const width = 860;
+  const height = 240;
+  const padding = 30;
+
+  const mapPoint = (series, index) => {
+    const x = padding + (index / (series.length - 1)) * (width - padding * 2);
+    const max = 70;
+    const min = 20;
+    const normalized = (series[index] - min) / (max - min);
+    const y = height - padding - normalized * (height - padding * 2);
+    return `${x},${y}`;
+  };
+
+  const moisturePoints = state.trend.moisture.map((_, index) => mapPoint(state.trend.moisture, index)).join(" ");
+  const temperaturePoints = state.trend.temperature.map((_, index) => mapPoint(state.trend.temperature, index)).join(" ");
+
+  svg.innerHTML = `
+    <defs>
+      <linearGradient id="moistureFill" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="rgba(139, 144, 34, 0.36)" />
+        <stop offset="100%" stop-color="rgba(139, 144, 34, 0.04)" />
+      </linearGradient>
+      <linearGradient id="temperatureFill" x1="0" x2="0" y1="0" y2="1">
+        <stop offset="0%" stop-color="rgba(93, 131, 118, 0.34)" />
+        <stop offset="100%" stop-color="rgba(93, 131, 118, 0.04)" />
+      </linearGradient>
+    </defs>
+    <g opacity="0.32">
+      <path d="M30 40 H830" stroke="currentColor" stroke-width="1" />
+      <path d="M30 96 H830" stroke="currentColor" stroke-width="1" />
+      <path d="M30 152 H830" stroke="currentColor" stroke-width="1" />
+      <path d="M30 208 H830" stroke="currentColor" stroke-width="1" />
+    </g>
+    <polyline points="${moisturePoints}" fill="none" stroke="var(--olive)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+    <polyline points="${temperaturePoints}" fill="none" stroke="var(--blue)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+  `;
+}
+
+function renderDemoDashboard(state) {
+  const setText = (id, value) => {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  };
+
+  setText("homeMoisture", `${state.home.moisture}%`);
+  setText("homeAverageMoisture", `${state.home.moisture}%`);
+  setText("homeTemperature", `${state.home.temperature}°C`);
+  setText("homeAverageTemperature", `${state.home.temperature}°`);
+  setText("homeWind", state.home.wind);
+  setText("homeTasks", String(state.home.tasks));
+
+  const aiMessage = document.getElementById("aiMessage");
+  if (aiMessage && !aiMessageLocked) {
+    aiMessage.innerHTML = `<strong>Resumen de hoy:</strong><br>Humedad promedio ${state.home.moisture}%, temperatura ${state.home.temperature}°C y riesgo fitosanitario ${state.home.risk}%. El Lote B sigue en atención por humedad baja.`;
+  }
+
+  if (booting) {
+    document.body.classList.remove("is-booting");
+    booting = false;
+  }
+
+  renderSensorCard("sensorCardOne", state.sensors[0]);
+  renderSensorCard("sensorCardTwo", state.sensors[1]);
+  renderSensorCard("sensorCardThree", state.sensors[2]);
+  renderSensorCard("sensorCardFour", state.sensors[3]);
+  renderList("sensorPipeline", state.pipeline, "pipeline-step");
+  renderList("readingList", state.readings, "reading");
+  renderList("featureList", state.features, "feature-item");
+  renderTrendChart(document.getElementById("sensorTrendChart"), state);
+
+  const status = document.querySelector(".live");
+  if (status) {
+    status.textContent = `Actualizado hace ${Math.round(18 + Math.random() * 14)} s`;
+  }
+}
+
+function getReply(text) {
+  const value = text.toLowerCase();
+
+  if (value.includes("hoy") || value.includes("tarea") || value.includes("plan")) {
+    return "Plan sugerido: 1) revisar humedad del Lote B, 2) tomar fotos del Lote C, 3) registrar lluvia real, 4) validar fertilizante, 5) no hacer aplicación foliar si llueve en la tarde.";
+  }
+
+  if (value.includes("riesgo") || value.includes("alerta")) {
+    return "Riesgos activos: humedad baja en Lote B, posible lluvia en la tarde y fotos pendientes para diagnóstico fitosanitario en Lote C.";
+  }
+
+  if (value.includes("lote") || value.includes("mango")) {
+    return "El Lote B de mango está marcado en atención por humedad baja. La recomendación demo es revisar suelo manualmente antes de programar riego o fertilización.";
+  }
+
+  if (value.includes("whatsapp") || value.includes("mensaje")) {
+    return "Mensaje sugerido: “Buenos días. Por favor revise humedad del Lote B antes de las 8:00 a.m. y reporte foto del suelo. No programar aplicación foliar si se confirma lluvia.”";
+  }
+
+  if (value.includes("trabajador") || value.includes("equipo")) {
+    return "Asignación demo: Juan Carlos revisa Lote B; Daniel sube fotos del Lote C; María registra lluvia real y confirma cierre de tarea pendiente.";
+  }
+
+  if (value.includes("resumen")) {
+    return "Resumen ejecutivo: la finca está operativa, con riesgo fitosanitario medio. El principal foco es Lote B por humedad baja y posible lluvia que afecta labores foliares.";
+  }
+
+  return "Respuesta demo: en la versión real responderé con datos de OpenCloud, documentos agronómicos, clima, fotos, tareas y trazabilidad completa.";
+}
+
+function escapeHtml(value) {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function formatInlineMarkdown(value) {
+  return value
+    .replace(/`([^`]+)`/g, "<code>$1</code>")
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*([^*]+)\*/g, "<em>$1</em>");
+}
+
+function renderMarkdown(value) {
+  const escaped = escapeHtml(value);
+  const lines = escaped.split("\n");
+  let html = "";
+  let inList = false;
+
+  lines.forEach((line) => {
+    const trimmed = line.trim();
+    const isListItem = /^[-*]\s+/.test(trimmed);
+
+    if (isListItem) {
+      if (!inList) {
+        html += "<ul>";
+        inList = true;
+      }
+      const item = trimmed.replace(/^[-*]\s+/, "");
+      html += `<li>${formatInlineMarkdown(item)}</li>`;
+      return;
+    }
+
+    if (inList) {
+      html += "</ul>";
+      inList = false;
+    }
+
+    if (!trimmed) {
+      html += "<br>";
+      return;
+    }
+
+    html += `${formatInlineMarkdown(line)}<br>`;
+  });
+
+  if (inList) {
+    html += "</ul>";
+  }
+
+  return html.replace(/<br>$/u, "");
+}
+
+/** Refleja el estado real de conexión con el agente en la pestaña Asistente. */
+function actualizarEstadoAgente(conectado) {
+  const estado = document.querySelector(".agent-status");
+  if (estado) {
+    estado.innerHTML = conectado
+      ? `<span class="status-dot"></span> Conectada con el agente`
+      : `<span class="status-dot"></span> Sin conexión — respuestas de muestra`;
+  }
+}
+
+async function askAi(prompt, targetId) {
+  const element = document.getElementById(targetId);
+  if (!element) return;
+
+  const promptContainer = element.closest(".command")?.querySelector(".quick-prompts");
+  if (promptContainer) {
+    promptContainer.classList.add("hidden");
+  }
+
+  aiMessageLocked = true;
+  element.classList.add("loading");
+  element.innerHTML = "<div class=\"ai-label\">LIA</div><div class=\"ai-body\">Consultando...</div>";
+
+  const historial = historiales[targetId] || (historiales[targetId] = []);
+  historial.push({ rol: "yo", texto: prompt });
+
+  try {
+    const reply = await enviarMensaje(historial, {});
+    historial.push({ rol: "lia", texto: reply });
+    element.classList.remove("loading");
+    element.innerHTML = `<div class=\"ai-label\">LIA</div><div class=\"ai-body\">${renderMarkdown(reply)}</div>`;
+    actualizarEstadoAgente(true);
+  } catch (error) {
+    const fallback = getReply(prompt);
+    historial.push({ rol: "lia", texto: fallback });
+    element.classList.remove("loading");
+    element.innerHTML = `<div class=\"ai-label\">LIA</div><div class=\"ai-body\">${renderMarkdown(fallback)}</div>`;
+    actualizarEstadoAgente(false);
+  }
+}
+
+function askPreset(type) {
+  const prompts = {
+    hoy: "¿Qué hacemos hoy?",
+    riesgos: "Riesgos activos",
+    lote: "Estado Lote B",
+    whatsapp: "Mensaje WhatsApp"
+  };
+
+  askAi(prompts[type], "aiMessage");
+}
+
+function sendQuestion() {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  askAi(text, "aiMessage");
   input.value = "";
-  S.chat.mensajes.push({ rol: "yo", texto });
-  S.chat.enviando = true;
-  iniciarEtapas();
-  render();
-  $("wk-chat-hilo").scrollTop = $("wk-chat-hilo").scrollHeight;
-
-  try {
-    const respuesta = await enviarMensaje(S.chat.mensajes, { lote: S.lote });
-    S.chat.mensajes.push({ rol: "lia", texto: respuesta });
-    S.conectado = true;
-  } catch (err) {
-    S.chat.mensajes.push({
-      rol: "error",
-      texto:
-        "No pude contactar al agente. Comprueba que el intermediario /api esté desplegado en el Worker.\n\n" +
-        "Detalle: " + err.message
-    });
-    S.conectado = false;
-  } finally {
-    detenerEtapas();
-    S.chat.enviando = false;
-    render();
-    $("wk-chat-input").focus();
-  }
 }
 
-$("wk-chat-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  enviarDesdeInput();
+function askBigPreset(type) {
+  const prompts = {
+    plan: "Plan de mañana",
+    mango: "Analizar mango",
+    trabajadores: "Asignar trabajadores",
+    resumen: "Resumen ejecutivo"
+  };
+
+  askAi(prompts[type], "bigAiMessage");
+}
+
+function sendBigQuestion() {
+  const input = document.getElementById("bigChatInput");
+  const text = input.value.trim();
+  if (!text) return;
+
+  askAi(text, "bigAiMessage");
+  input.value = "";
+}
+
+document.getElementById("chatInput").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") sendQuestion();
 });
 
-// ═══════════ arranque ═══════════
+document.getElementById("bigChatInput").addEventListener("keydown", (event) => {
+  if (event.key === "Enter") sendBigQuestion();
+});
 
-async function iniciar() {
-  try {
-    const guardado = window.localStorage.getItem("waiker-tema");
-    if (guardado === "light" || guardado === "dark") S.tema = guardado;
-  } catch { /* modo privado: usamos el tema por defecto */ }
+// ═══════════ Asistente: propuestas reales + registro de decisiones ═══════════
 
-  await cargarHilo();
-  render();
-  S.conectado = await hayConexion();
-  render();
+function renderAcciones() {
+  const cont = document.querySelector(".agent-actions");
+  if (!cont) return;
+
+  const pendientes = acciones().filter((h) => modoDe(h) === "pendiente");
+  cont.innerHTML = pendientes.length
+    ? pendientes.map((h) => `
+      <div class="agent-action">
+        <span class="pill ${h.tono === "clay" ? "red" : h.tono === "wheat" ? "yellow" : "blue"}">${escapeHtml(h.tag)}</span>
+        <div>
+          <strong>${escapeHtml(h.lead)}</strong>
+          <span>${escapeHtml(h.texto)}</span>
+          <div class="agent-action-botones">
+            <button class="btn" onclick="decidir('${h.ancla}','aprobada')">Hazlo</button>
+            <button class="btn secondary" onclick="decidir('${h.ancla}','descartada')">No</button>
+          </div>
+        </div>
+      </div>`).join("")
+    : `<div class="agent-item"><span>Sin propuestas pendientes por ahora.</span></div>`;
 }
 
-iniciar();
+function renderTimeline() {
+  const cont = document.querySelector(".agent-timeline");
+  if (!cont) return;
+
+  const resueltas = acciones()
+    .filter((h) => decisiones[h.ancla])
+    .map((h) => ({ hora: h.hora, texto: `${decisiones[h.ancla] === "aprobada" ? "Aprobada" : "Descartada"}: ${h.lead}` }));
+
+  const eventos = [...REGISTRO_DEMO, ...resueltas].sort((a, b) => a.hora.localeCompare(b.hora));
+
+  cont.innerHTML = eventos.map((e) => `
+    <div class="agent-event">
+      <span>${escapeHtml(e.hora)}</span>
+      <strong>${escapeHtml(e.texto)}</strong>
+    </div>`).join("");
+}
+
+cargarHilo();
+renderAcciones();
+renderTimeline();
+hayConexion().then(actualizarEstadoAgente);
+
+mockFetchTelemetry().then(renderDemoDashboard);
+
+setInterval(() => {
+  demoState.home.moisture = Math.max(52, Math.min(72, demoState.home.moisture + (Math.random() > 0.5 ? 1 : -1)));
+  demoState.home.temperature = Math.max(24, Math.min(31, demoState.home.temperature + (Math.random() > 0.5 ? 1 : -1)));
+  demoState.home.risk = Math.max(58, Math.min(82, demoState.home.risk + (Math.random() > 0.5 ? 1 : -1)));
+  renderDemoDashboard(demoState);
+}, 12000);
+
+// El HTML llama a estas funciones desde atributos onclick="..."; con
+// type="module" ya no son globales implícitas, así que se exponen a mano.
+window.openPage = openPage;
+window.askPreset = askPreset;
+window.sendQuestion = sendQuestion;
+window.askBigPreset = askBigPreset;
+window.sendBigQuestion = sendBigQuestion;
