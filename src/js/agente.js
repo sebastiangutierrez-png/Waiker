@@ -9,6 +9,7 @@
 
 import { C, LOTES, SENSORES, COLOR_SENSOR, CLIMA, SALUDO_LIA, ATAJOS_DEMO } from "./data.js";
 import { enviarMensaje, hayConexion } from "./api.js";
+import { iniciarSincronizacionSensores } from "./sheetSensores.js";
 
 const $ = (id) => document.getElementById(id);
 
@@ -259,6 +260,7 @@ async function iniciar() {
   render();
   S.conectado = await hayConexion();
   render();
+  iniciarSincronizacionSensores(SENSORES, renderChatDatos);
 }
 
 iniciar();
