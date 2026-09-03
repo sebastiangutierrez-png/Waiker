@@ -1916,8 +1916,8 @@ h1 span {
    ═══════════════════════════════════════════════════════════ */
 
 :root {
-  --csb-bg: #565c22;
-  --csb-active: #3d431a;
+  --csb-bg: #8b9022;
+  --csb-active: #6b6f1a;
   --csb-fg: #f5f2e2;
   --csb-fg-mute: #c6c99b;
   --csb-line: rgba(255,255,255,.10);
@@ -1945,27 +1945,15 @@ h1 span {
 
 .csb-logo {
   display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 0 8px;
+  justify-content: center;
+  padding: 4px 8px 2px;
 }
 
-.csb-logo-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255,255,255,.55);
-  display: grid;
-  place-items: center;
-  flex: none;
-  font-size: 16px;
-}
-
-.csb-logo-text {
-  font-weight: 900;
-  font-size: 15px;
-  letter-spacing: .01em;
-  color: var(--csb-fg);
+.csb-logo-img {
+  width: 100%;
+  max-width: 148px;
+  height: auto;
+  display: block;
 }
 
 .csb-nav {
