@@ -8,8 +8,11 @@
 //  Cómo configurar la hoja (una sola vez):
 //   1. En Google Sheets, la primera fila debe tener estos encabezados
 //      (en cualquier orden, sin acentos ni mayúsculas importa):
-//        id | lugar | valor | unidad | estado
-//      Cada fila siguiente es un sensor. `estado` debe ser una de:
+//        id | lugar | tipo | valor | unidad | estado
+//      Cada fila siguiente es un sensor. `lugar` debe coincidir con las
+//      zonas que ya aparecen en el Resumen (Lote A · Cacao, Lote B · Mango,
+//      Lote C · Café, Lote D · Cacao, Vivero, Zona hídrica). `tipo` es lo que
+//      mide (Humedad, Temperatura, Caudal riego...). `estado` debe ser una de:
 //        ok · aviso · alerta · sin señal
 //   2. Archivo → Compartir → Publicar en la Web → elegir la pestaña
 //      correcta → formato "Valores separados por comas (.csv)" → Publicar.
@@ -63,7 +66,7 @@ function filasAObjetos(filas) {
   const encabezados = filas[0].map(normalizarEncabezado);
   const col = (nombre) => encabezados.indexOf(nombre);
 
-  const iId = col("id"), iLugar = col("lugar"), iValor = col("valor"),
+  const iId = col("id"), iLugar = col("lugar"), iTipo = col("tipo"), iValor = col("valor"),
     iUnidad = col("unidad"), iEstado = col("estado");
   if (iId === -1) return [];
 
@@ -75,6 +78,7 @@ function filasAObjetos(filas) {
     return {
       id: (fila[iId] ?? "").trim(),
       lugar: (fila[iLugar] ?? "").trim(),
+      tipo: (fila[iTipo] ?? "").trim(),
       valor: Number(String(fila[iValor] ?? "0").replace(",", ".")) || 0,
       unidad: (fila[iUnidad] ?? "").trim(),
       estado
@@ -99,16 +103,21 @@ export async function leerSensoresDeHoja() {
 }
 
 /** Reemplaza el contenido de un array (p.ej. SENSORES de data.js) en el sitio,
- *  para que todo lo que ya lo importa vea los datos nuevos sin más cambios. */
+ *  para que todo lo que ya lo importa vea los datos nuevos sin más cambios.
+ *  Si la hoja todavía no tiene columna `tipo`, conserva la que ya había por id
+ *  en vez de dejarla en blanco. */
 export function aplicarSensores(destino, nuevos) {
+  const tipoPrevio = Object.fromEntries(destino.map((s) => [s.id, s.tipo]));
   destino.length = 0;
-  destino.push(...nuevos);
+  destino.push(...nuevos.map((s) => ({ ...s, tipo: s.tipo || tipoPrevio[s.id] || "" })));
 }
 
 const INTERVALO_MS = 2 * 60 * 1000;
 
-/** Sincroniza ahora mismo y cada INTERVALO_MS después. `onActualizado` se
- *  llama tras cada sincronización exitosa para que la página se vuelva a pintar. */
+/** Sincroniza ahora mismo, cada INTERVALO_MS después, y cada vez que la
+ *  pestaña vuelve a estar visible (para no esperar el intervalo completo
+ *  si alguien deja la pestaña abierta y vuelve más tarde). `onActualizado`
+ *  se llama tras cada sincronización exitosa para que la página se repinte. */
 export function iniciarSincronizacionSensores(destino, onActualizado) {
   async function sincronizar() {
     const nuevos = await leerSensoresDeHoja();
@@ -119,4 +128,7 @@ export function iniciarSincronizacionSensores(destino, onActualizado) {
   }
   sincronizar();
   setInterval(sincronizar, INTERVALO_MS);
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") sincronizar();
+  });
 }

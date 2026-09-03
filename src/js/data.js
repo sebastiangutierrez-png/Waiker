@@ -97,12 +97,12 @@ export const ESTADO_LOTE = {
 };
 
 export const SENSORES = [
-  { id: "S-01", lugar: "A-1 · cabecera", tipo: "humedad suelo", valor: 34, unidad: "%", bateria: 92, visto: "hace 4 m", estado: "ok", serie: [31, 33, 36, 34, 32, 35, 34, 33, 34] },
-  { id: "S-02", lugar: "A-2 · media ladera", tipo: "humedad suelo", valor: 29, unidad: "%", bateria: 78, visto: "hace 6 m", estado: "ok", serie: [27, 28, 30, 31, 29, 28, 29, 30, 29] },
-  { id: "S-03", lugar: "A-3 · sombra alta", tipo: "humedad suelo", valor: 41, unidad: "%", bateria: 41, visto: "hace 11 m", estado: "aviso", serie: [38, 39, 42, 44, 41, 40, 41, 42, 41] },
-  { id: "S-04", lugar: "B-1 · vega, junto acequia", tipo: "humedad suelo", valor: 52, unidad: "%", bateria: 66, visto: "hace 3 m", estado: "alerta", serie: [44, 47, 50, 54, 53, 51, 52, 53, 52] },
-  { id: "S-05", lugar: "B-2 · vivero", tipo: "temp. hoja", valor: 23, unidad: "°C", bateria: 88, visto: "hace 8 m", estado: "ok", serie: [21, 22, 24, 25, 24, 23, 23, 24, 23] },
-  { id: "S-06", lugar: "C-1 · depósito", tipo: "caudal riego", valor: 0, unidad: "l/m", bateria: 12, visto: "hace 2 h", estado: "sin señal", serie: [4, 4, 3, 2, 1, 0, 0, 0, 0] }
+  { id: "S-01", lugar: "Lote A · Cacao", tipo: "Humedad", valor: 34, unidad: "%", bateria: 92, visto: "hace 4 m", estado: "ok", serie: [31, 33, 36, 34, 32, 35, 34, 33, 34] },
+  { id: "S-02", lugar: "Lote B · Mango", tipo: "Humedad", valor: 41, unidad: "%", bateria: 78, visto: "hace 6 m", estado: "alerta", serie: [27, 28, 30, 31, 29, 28, 29, 30, 29] },
+  { id: "S-03", lugar: "Lote C · Café", tipo: "Humedad", valor: 29, unidad: "%", bateria: 41, visto: "hace 11 m", estado: "ok", serie: [38, 39, 42, 44, 41, 40, 41, 42, 41] },
+  { id: "S-04", lugar: "Lote D · Cacao", tipo: "Humedad", valor: 52, unidad: "%", bateria: 66, visto: "hace 3 m", estado: "aviso", serie: [44, 47, 50, 54, 53, 51, 52, 53, 52] },
+  { id: "S-05", lugar: "Vivero", tipo: "Temperatura", valor: 23, unidad: "°C", bateria: 88, visto: "hace 8 m", estado: "ok", serie: [21, 22, 24, 25, 24, 23, 23, 24, 23] },
+  { id: "S-06", lugar: "Zona hídrica", tipo: "Caudal riego", valor: 0, unidad: "l/m", bateria: 12, visto: "hace 2 h", estado: "sin señal", serie: [4, 4, 3, 2, 1, 0, 0, 0, 0] }
 ];
 
 export const COLOR_SENSOR = {

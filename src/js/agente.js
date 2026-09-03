@@ -155,7 +155,7 @@ function renderChatDatos() {
     <div class="datos-sensores">
       <span class="mono datos-titulo">sensores</span>
       <span class="datos-sensores-puntos">
-        ${SENSORES.map((s) => `<i title="${esc(s.id + " · " + s.lugar + " · " + s.valor + s.unidad)}" style="background:${COLOR_SENSOR[s.estado]}"></i>`).join("")}
+        ${SENSORES.map((s) => `<i title="${esc(s.lugar + " · " + (s.tipo || s.id) + " · " + s.valor + s.unidad)}" style="background:${COLOR_SENSOR[s.estado]}"></i>`).join("")}
       </span>
       <span class="mono datos-sensores-resumen">${enLinea} en línea · ${SENSORES.length - enLinea} sin señal</span>
     </div>`;

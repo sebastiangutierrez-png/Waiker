@@ -73,7 +73,7 @@ function renderSensoresPagina() {
 
   cards.innerHTML = SENSORES.map((s) => `
     <div class="info-card sensor-card">
-      <span class="pill ${tonoSensor(s.estado)}">${escapeHtml(s.id)}</span>
+      <span class="pill ${tonoSensor(s.estado)}">${escapeHtml(s.tipo || s.id)}</span>
       <h3>${escapeHtml(s.lugar)}</h3>
       <p>${s.valor}${escapeHtml(s.unidad)}</p>
       <small style="color:${COLOR_SENSOR[s.estado]}">${escapeHtml(s.estado)}</small>
@@ -81,7 +81,7 @@ function renderSensoresPagina() {
 
   lista.innerHTML = SENSORES.map((s) => `
     <div class="reading">
-      <strong>${escapeHtml(s.id)} · ${escapeHtml(s.lugar)}</strong>
+      <strong>${escapeHtml(s.lugar)} · ${escapeHtml(s.tipo || s.id)}</strong>
       <span style="color:${COLOR_SENSOR[s.estado]}">${s.valor}${escapeHtml(s.unidad)} · ${escapeHtml(s.estado)}</span>
     </div>`).join("");
 }
@@ -271,7 +271,7 @@ function renderResumenSensores() {
   if (!cont) return;
   cont.innerHTML = SENSORES.slice(0, 4).map((s) => `
     <div class="c-list-row">
-      <div><strong>${escapeHtml(s.id)}</strong><span>${escapeHtml(s.lugar)}</span></div>
+      <div><strong>${escapeHtml(s.lugar)}</strong><span>${escapeHtml(s.tipo || s.id)}</span></div>
       <span style="color:${COLOR_SENSOR[s.estado]};font-weight:800">${s.valor}${s.unidad}</span>
     </div>`).join("");
 }
