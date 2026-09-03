@@ -353,11 +353,11 @@
         <div class="panel">
           <div class="section-head">
             <div>
-              <span class="section-kicker">Clima operativo</span>
+              <span class="section-kicker">Hoja de campo</span>
               <h2>Clima y entorno</h2>
-              <p class="section-copy">Pronóstico inmediato con señales de riego, lluvia y viento.</p>
+              <p class="section-copy">Pronóstico anotado a mano por el equipo, con señales de riego, lluvia y viento.</p>
             </div>
-            <span class="pill blue">Actualizado 08:12</span>
+            <span class="pill blue" id="climaActualizado">Actualizado 08:12</span>
           </div>
 
           <div class="clima-grid">
@@ -365,15 +365,15 @@
               <div class="clima-head">
                 <div>
                   <span class="pill">Hoy</span>
-                  <h3>27°C · Parcialmente nublado</h3>
-                  <p>Ventana recomendada de aplicaciones: 9:00 a.m. a 1:30 p.m.</p>
+                  <h3 id="climaHoy">27°C · Parcialmente nublado</h3>
+                  <p id="climaVentana">Ventana recomendada de aplicaciones: 9:00 a.m. a 1:30 p.m.</p>
                 </div>
                 <div class="clima-score">
                   <strong>Riesgo lluvia</strong>
-                  <span>32%</span>
+                  <span id="climaLluviaProb">32%</span>
                 </div>
               </div>
-              <div class="clima-strip">
+              <div class="clima-strip" id="climaStrip">
                 <div class="clima-chip active">
                   <strong>08:00</strong>
                   <span>24°</span>
@@ -399,43 +399,36 @@
 
             <div class="clima-card">
               <span class="pill">Temperatura</span>
-              <h3>27°C</h3>
-              <p>Condición favorable para mantenimiento y revisión.</p>
+              <h3 id="climaTempCard">27°C</h3>
+              <p id="climaTempNota">Condición favorable para mantenimiento y revisión.</p>
               <div class="clima-mini"></div>
             </div>
 
             <div class="clima-card">
               <span class="pill blue">Humedad</span>
-              <h3>64%</h3>
-              <p>Promedio general estable; Lote B requiere riego.</p>
+              <h3 id="climaHumCard">64%</h3>
+              <p id="climaHumNota">Promedio general estable; revisa los lotes en alerta.</p>
               <div class="clima-mini"></div>
             </div>
 
             <div class="clima-card">
               <span class="pill">Viento</span>
-              <h3>NE · 12 km/h</h3>
+              <h3 id="climaVientoCard">NE · 12 km/h</h3>
               <p>Validar velocidad antes de aplicaciones foliares.</p>
               <div class="clima-mini"></div>
             </div>
 
             <div class="clima-card">
               <span class="pill yellow">Lluvia</span>
-              <h3>Posible tarde</h3>
+              <h3 id="climaLluviaCard">Posible tarde</h3>
               <p>Evitar aplicación después de las 2:00 p.m.</p>
               <div class="clima-mini"></div>
             </div>
 
             <div class="clima-card">
               <span class="pill">Pluviometría</span>
-              <h3>2 mm</h3>
-              <p>Registro manual demo con fecha y lote.</p>
-              <div class="clima-mini"></div>
-            </div>
-
-            <div class="clima-card">
-              <span class="pill blue">Offline</span>
-              <h3>Último pronóstico</h3>
-              <p>Mostrar fecha cuando no haya señal.</p>
+              <h3 id="climaPluvCard">2 mm</h3>
+              <p>Acumulado del día, anotado a mano en la hoja.</p>
               <div class="clima-mini"></div>
             </div>
           </div>

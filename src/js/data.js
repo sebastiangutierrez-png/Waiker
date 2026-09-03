@@ -97,12 +97,24 @@ export const ESTADO_LOTE = {
 };
 
 export const SENSORES = [
-  { id: "S-01", lugar: "Lote A · Cacao", tipo: "Humedad", valor: 34, unidad: "%", bateria: 92, visto: "hace 4 m", estado: "ok", serie: [31, 33, 36, 34, 32, 35, 34, 33, 34] },
-  { id: "S-02", lugar: "Lote B · Mango", tipo: "Humedad", valor: 41, unidad: "%", bateria: 78, visto: "hace 6 m", estado: "alerta", serie: [27, 28, 30, 31, 29, 28, 29, 30, 29] },
-  { id: "S-03", lugar: "Lote C · Café", tipo: "Humedad", valor: 29, unidad: "%", bateria: 41, visto: "hace 11 m", estado: "ok", serie: [38, 39, 42, 44, 41, 40, 41, 42, 41] },
-  { id: "S-04", lugar: "Lote D · Cacao", tipo: "Humedad", valor: 52, unidad: "%", bateria: 66, visto: "hace 3 m", estado: "aviso", serie: [44, 47, 50, 54, 53, 51, 52, 53, 52] },
-  { id: "S-05", lugar: "Vivero", tipo: "Temperatura", valor: 23, unidad: "°C", bateria: 88, visto: "hace 8 m", estado: "ok", serie: [21, 22, 24, 25, 24, 23, 23, 24, 23] },
-  { id: "S-06", lugar: "Zona hídrica", tipo: "Caudal riego", valor: 0, unidad: "l/m", bateria: 12, visto: "hace 2 h", estado: "sin señal", serie: [4, 4, 3, 2, 1, 0, 0, 0, 0] }
+  { id: "S-01", lugar: "Lote A · Cacao", tipo: "Humedad", valor: 64, unidad: "%", bateria: 92, visto: "hace 4 m", estado: "ok", serie: [61, 63, 66, 64, 62, 65, 64, 63, 64] },
+  { id: "S-02", lugar: "Lote A · Cacao", tipo: "Humedad de suelo", valor: 34, unidad: "%", bateria: 92, visto: "hace 4 m", estado: "ok", serie: [31, 33, 36, 34, 32, 35, 34, 33, 34] },
+  { id: "S-03", lugar: "Lote A · Cacao", tipo: "Temperatura", valor: 25, unidad: "°C", bateria: 92, visto: "hace 4 m", estado: "ok", serie: [24, 24, 25, 26, 25, 24, 25, 25, 25] },
+
+  { id: "S-04", lugar: "Lote B · Mango", tipo: "Humedad", valor: 41, unidad: "%", bateria: 78, visto: "hace 6 m", estado: "alerta", serie: [27, 28, 30, 31, 29, 28, 29, 30, 29] },
+  { id: "S-05", lugar: "Lote B · Mango", tipo: "Humedad de suelo", valor: 22, unidad: "%", bateria: 78, visto: "hace 6 m", estado: "alerta", serie: [25, 24, 23, 22, 22, 21, 22, 22, 22] },
+  { id: "S-06", lugar: "Lote B · Mango", tipo: "Temperatura", valor: 29, unidad: "°C", bateria: 78, visto: "hace 6 m", estado: "aviso", serie: [27, 28, 28, 29, 29, 28, 29, 29, 29] },
+
+  { id: "S-07", lugar: "Lote C · Café", tipo: "Humedad", valor: 58, unidad: "%", bateria: 41, visto: "hace 11 m", estado: "ok", serie: [55, 56, 58, 57, 58, 59, 58, 57, 58] },
+  { id: "S-08", lugar: "Lote C · Café", tipo: "Humedad de suelo", valor: 29, unidad: "%", bateria: 41, visto: "hace 11 m", estado: "ok", serie: [26, 27, 30, 29, 28, 29, 29, 28, 29] },
+  { id: "S-09", lugar: "Lote C · Café", tipo: "Temperatura", valor: 22, unidad: "°C", bateria: 41, visto: "hace 11 m", estado: "ok", serie: [21, 21, 22, 22, 23, 22, 22, 22, 22] },
+
+  { id: "S-10", lugar: "Lote D · Cacao", tipo: "Humedad", valor: 71, unidad: "%", bateria: 66, visto: "hace 3 m", estado: "aviso", serie: [66, 68, 70, 71, 70, 71, 72, 71, 71] },
+  { id: "S-11", lugar: "Lote D · Cacao", tipo: "Humedad de suelo", valor: 52, unidad: "%", bateria: 66, visto: "hace 3 m", estado: "aviso", serie: [44, 47, 50, 54, 53, 51, 52, 53, 52] },
+  { id: "S-12", lugar: "Lote D · Cacao", tipo: "Temperatura", valor: 24, unidad: "°C", bateria: 66, visto: "hace 3 m", estado: "ok", serie: [23, 23, 24, 24, 25, 24, 24, 24, 24] },
+
+  { id: "S-13", lugar: "Vivero", tipo: "Temperatura", valor: 23, unidad: "°C", bateria: 88, visto: "hace 8 m", estado: "ok", serie: [21, 22, 24, 25, 24, 23, 23, 24, 23] },
+  { id: "S-14", lugar: "Zona hídrica", tipo: "Caudal riego", valor: 0, unidad: "l/m", bateria: 12, visto: "hace 2 h", estado: "sin señal", serie: [4, 4, 3, 2, 1, 0, 0, 0, 0] }
 ];
 
 export const COLOR_SENSOR = {

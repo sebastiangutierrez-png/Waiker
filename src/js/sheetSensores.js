@@ -11,9 +11,9 @@
 //        id | lugar | tipo | valor | unidad | estado
 //      Cada fila siguiente es un sensor. `lugar` debe coincidir con las
 //      zonas que ya aparecen en el Resumen (Lote A · Cacao, Lote B · Mango,
-//      Lote C · Café, Lote D · Cacao, Vivero, Zona hídrica). `tipo` es lo que
-//      mide (Humedad, Temperatura, Caudal riego...). `estado` debe ser una de:
-//        ok · aviso · alerta · sin señal
+//      Lote C · Café, Lote D · Cacao, Vivero, Zona hídrica). Cada lote suele
+//      tener tres filas — una por `tipo`: Humedad, Humedad de suelo,
+//      Temperatura. `estado` debe ser una de: ok · aviso · alerta · sin señal
 //   2. Archivo → Compartir → Publicar en la Web → elegir la pestaña
 //      correcta → formato "Valores separados por comas (.csv)" → Publicar.
 //   3. Pega la URL que te da Google Sheets en SHEET_CSV_URL, abajo.
@@ -23,49 +23,15 @@
 //  se rompe por esto.
 // ─────────────────────────────────────────────────────────────
 
+import { leerCSV, normalizarTexto, indexarEncabezados } from "./csv.js";
+
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-EaYV4j-bkTMKs9MAmSH1UiQQApq0dR_WU0MqP9356af0nHCBQywbZfL5tCgbTHZBnjt-UcqHKbU/pub?gid=1737731176&single=true&output=csv";
 
 const ESTADOS_VALIDOS = ["ok", "aviso", "alerta", "sin señal"];
 
-function parseCSV(texto) {
-  const filas = [];
-  let fila = [], campo = "", enComillas = false;
-
-  for (let i = 0; i < texto.length; i++) {
-    const c = texto[i];
-    if (enComillas) {
-      if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
-      else if (c === '"') { enComillas = false; }
-      else { campo += c; }
-    } else if (c === '"') {
-      enComillas = true;
-    } else if (c === ",") {
-      fila.push(campo); campo = "";
-    } else if (c === "\n" || c === "\r") {
-      if (c === "\r" && texto[i + 1] === "\n") i++;
-      fila.push(campo); campo = "";
-      if (fila.some((v) => v.trim() !== "")) filas.push(fila);
-      fila = [];
-    } else {
-      campo += c;
-    }
-  }
-  if (campo !== "" || fila.length) { fila.push(campo); filas.push(fila); }
-
-  return filas;
-}
-
-function normalizarEncabezado(s) {
-  return s.trim().toLowerCase()
-    .normalize("NFD").replace(/[̀-ͯ]/g, ""); // quita acentos
-}
-
 /** Convierte filas crudas del CSV en objetos con la forma que ya usa SENSORES en data.js. */
 function filasAObjetos(filas) {
-  if (!filas.length) return [];
-  const encabezados = filas[0].map(normalizarEncabezado);
-  const col = (nombre) => encabezados.indexOf(nombre);
-
+  const col = indexarEncabezados(filas[0]);
   const iId = col("id"), iLugar = col("lugar"), iTipo = col("tipo"), iValor = col("valor"),
     iUnidad = col("unidad"), iEstado = col("estado");
   if (iId === -1) return [];
@@ -73,8 +39,8 @@ function filasAObjetos(filas) {
   return filas.slice(1).map((fila) => {
     // Comparamos normalizado (sin acentos/mayúsculas) pero guardamos el valor
     // canónico con ñ/acentos intactos, para no perder "sin señal" al comparar.
-    const estadoCrudo = normalizarEncabezado(fila[iEstado] ?? "");
-    const estado = ESTADOS_VALIDOS.find((e) => normalizarEncabezado(e) === estadoCrudo) ?? "ok";
+    const estadoCrudo = normalizarTexto(fila[iEstado] ?? "");
+    const estado = ESTADOS_VALIDOS.find((e) => normalizarTexto(e) === estadoCrudo) ?? "ok";
     return {
       id: (fila[iId] ?? "").trim(),
       lugar: (fila[iLugar] ?? "").trim(),
@@ -89,17 +55,10 @@ function filasAObjetos(filas) {
 /** Descarga la hoja publicada y devuelve los sensores, o null si no hay hoja
  *  configurada o algo falló (sin conexión, hoja privada, etc). */
 export async function leerSensoresDeHoja() {
-  if (!SHEET_CSV_URL) return null;
-  try {
-    const res = await fetch(SHEET_CSV_URL, { cache: "no-store" });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const texto = await res.text();
-    const sensores = filasAObjetos(parseCSV(texto));
-    return sensores.length ? sensores : null;
-  } catch (err) {
-    console.warn("No se pudo leer la hoja de sensores, usando datos de muestra:", err.message);
-    return null;
-  }
+  const filas = await leerCSV(SHEET_CSV_URL);
+  if (!filas) return null;
+  const sensores = filasAObjetos(filas);
+  return sensores.length ? sensores : null;
 }
 
 /** Reemplaza el contenido de un array (p.ej. SENSORES de data.js) en el sitio,

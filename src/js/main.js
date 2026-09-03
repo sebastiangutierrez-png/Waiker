@@ -1,6 +1,7 @@
 import { enviarMensaje, hayConexion } from "./api.js";
 import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR } from "./data.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
+import { iniciarSincronizacionPronostico } from "./sheetPronostico.js";
 
 const navButtons = document.querySelectorAll(".csb-nav [data-page]");
 const pages = document.querySelectorAll(".page");
@@ -89,6 +90,37 @@ function renderSensoresPagina() {
 function marcarSincronizado() {
   const pill = document.getElementById("sensoresEstadoSync");
   if (pill) pill.textContent = "Sincronizado con la hoja";
+}
+
+function setTexto(id, valor) {
+  const el = document.getElementById(id);
+  if (el && valor !== undefined && valor !== null && valor !== "") el.textContent = valor;
+}
+
+function renderPronostico({ actual, horas }) {
+  if (actual) {
+    setTexto("climaHoy", `${actual.temp}°C · ${actual.condicion}`);
+    setTexto("climaVentana", actual.ventana ? `Ventana recomendada de aplicaciones: ${actual.ventana}` : undefined);
+    setTexto("climaLluviaProb", `${actual.lluviaProb}%`);
+    setTexto("climaActualizado", `Actualizado ${actual.actualizado}`);
+    setTexto("climaTempCard", `${actual.temp}°C`);
+    setTexto("climaHumCard", `${actual.humedad}%`);
+    setTexto("climaVientoCard", `${actual.vientoDir} · ${actual.vientoKmh} km/h`);
+    setTexto("climaLluviaCard", actual.lluviaTexto);
+    setTexto("climaPluvCard", `${actual.pluviometriaMm} mm`);
+  }
+
+  if (horas.length) {
+    const franja = document.getElementById("climaStrip");
+    if (franja) {
+      franja.innerHTML = horas.map((h, i) => `
+        <div class="clima-chip ${i === 0 ? "active" : ""}">
+          <strong>${escapeHtml(h.hora)}</strong>
+          <span>${h.temp}°</span>
+          <small>${escapeHtml(h.nota)}</small>
+        </div>`).join("");
+    }
+  }
 }
 
 function getReply(text) {
@@ -358,4 +390,5 @@ iniciarSincronizacionSensores(SENSORES, () => {
   renderSensoresPagina();
   marcarSincronizado();
 });
+iniciarSincronizacionPronostico(renderPronostico);
 
