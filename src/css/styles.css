@@ -24,7 +24,8 @@
   --tinta-tenue-2: #a89f89;
   --tinta-dim: #7c714f;
 
-  /* barra lateral (siempre oscura, ambos temas) — mismo verde oliva que --acento */
+  /* barra lateral (tema claro) — mismo verde oliva que --acento; el tema oscuro la
+     redefine más abajo en café/ámbar para no chocar con el resto de la paleta */
   --lat-bg: #4f6b34;
   --lat-linea: #435c2b;
   --lat-fg: #f5f1e4;
@@ -82,6 +83,14 @@
   --acento-linea: rgba(214, 154, 69, 0.35);
   --sombra-form: 0 14px 36px rgba(0, 0, 0, 0.5);
   --fade-grad: linear-gradient(to top, #14110d 62%, rgba(20, 17, 13, 0));
+
+  /* barra lateral: mismo café/ámbar que el resto del tema oscuro, no el verde del tema claro */
+  --lat-bg: #4a3221;
+  --lat-linea: #3c2819;
+  --lat-fg: #f5ece0;
+  --lat-mute: #d9c7b3;
+  --lat-tenue: #b0937a;
+  --lat-activo: rgba(255, 255, 255, 0.08);
 }
 
 * { box-sizing: border-box; }
@@ -148,13 +157,7 @@ svg { display: block; }
   border-bottom: 1px solid var(--lat-linea);
 }
 
-.marca-logo {
-  width: 30px; height: 30px; background: var(--acento);
-  display: grid; place-items: center; font-weight: 700; font-size: 15px;
-  color: #14110d; border-radius: var(--radio-s); flex: none;
-}
-
-.marca-nombre { font-weight: 700; font-size: 17px; letter-spacing: 0.02em; }
+.marca-usuario { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1; }
 
 .tema-btn {
   margin-left: auto;
@@ -256,20 +259,21 @@ svg { display: block; }
 .pulso-etiqueta { font-size: 14px; color: var(--lat-mute); }
 .pulso-valor { margin-left: auto; font-size: 15px; font-weight: 500; color: var(--lat-fg); }
 
-/* ── usuario ── */
-
-.lia-usuario {
-  margin-top: auto; padding: 16px 18px 18px; border-top: 1px solid var(--lat-linea);
-  display: flex; align-items: center; gap: 10px;
-}
+/* ── usuario (en la cabecera de la barra lateral) ── */
 
 .usuario-avatar {
   width: 32px; height: 32px; border-radius: 50%; background: var(--hoja);
   color: #e6f0dc; display: grid; place-items: center; font-size: 13px; font-weight: 700; flex: none;
 }
 
-.usuario-nombre { font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--lat-fg); }
-.usuario-finca { font-size: 11.5px; color: var(--lat-tenue); line-height: 1.3; }
+.usuario-nombre {
+  font-size: 14px; font-weight: 500; line-height: 1.3; color: var(--lat-fg);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.usuario-finca {
+  font-size: 11.5px; color: var(--lat-tenue); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 
 /* ── contenido principal ── */
 

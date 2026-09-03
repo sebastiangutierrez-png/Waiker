@@ -286,7 +286,7 @@ function renderUsuario() {
   const { iniciales, nombre } = FINCA.usuario;
   $("wk-lia-usuario").innerHTML = `
     <span class="usuario-avatar">${esc(iniciales)}</span>
-    <div>
+    <div style="min-width:0">
       <div class="usuario-nombre">${esc(nombre)}</div>
       <div class="mono usuario-finca">${esc(FINCA.nombre)} · ${esc(FINCA.detalle.split(" · ")[0])}</div>
     </div>`;
