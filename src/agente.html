@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agromyss | Asistente LIA</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+
+  <link rel="stylesheet" href="css/styles.css" />
+  <script type="module" src="js/agente.js"></script>
+</head>
+
+<body class="pagina-agente">
+  <div class="grain"></div>
+
+  <div class="concept-shell" style="grid-template-columns:232px 1fr">
+    <aside class="csb">
+      <div class="csb-logo">
+        <div class="csb-logo-mark">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <circle cx="12" cy="12" r="10.5" />
+            <path d="M12 4c2 3 2 6 0 9M12 4c-2 3-2 6 0 9M6 9c3-1 6-1 8 1M18 9c-3-1-6-1-8 1M8 17c1-3 3-5 6-6M8 14c2 0 4 1 5 3" />
+          </svg>
+        </div>
+        <span class="csb-logo-text">Agromyss</span>
+      </div>
+
+      <nav class="csb-nav">
+        <a href="index.html"><span class="csb-nav-icon">▦</span>Resumen</a>
+        <a href="index.html#lotes"><span class="csb-nav-icon">🗺</span>Mapa de lotes</a>
+        <a href="index.html#clima"><span class="csb-nav-icon">☁</span>Clima</a>
+        <a href="index.html#sensores"><span class="csb-nav-icon">📡</span>Sensores</a>
+        <a href="index.html#tareas"><span class="csb-nav-icon">☑</span>Tareas</a>
+        <a href="index.html#reportes"><span class="csb-nav-icon">▤</span>Reportes</a>
+        <a href="index.html#insumos"><span class="csb-nav-icon">◧</span>Insumos</a>
+
+        <div class="csb-nav-titulo">Agente</div>
+        <a href="index.html#propuestas"><span class="csb-nav-icon">✓</span>Propuestas</a>
+        <a href="agente.html" class="active"><span class="csb-nav-icon">◎</span>Asistente</a>
+
+        <div class="csb-nav-titulo">Sistema</div>
+        <a href="index.html#config"><span class="csb-nav-icon">⚙</span>Configuración</a>
+      </nav>
+    </aside>
+
+    <main class="csb-main" style="padding-top:26px">
+      <div class="aviso" id="wk-aviso" role="status"></div>
+
+      <section class="vista-chat" id="wk-vista-chat">
+        <div class="chat-cima" id="wk-chat-cima"></div>
+        <div class="chat-datos" id="wk-chat-datos" hidden></div>
+        <div class="chat-hilo" id="wk-chat-hilo" aria-live="polite"></div>
+      </section>
+
+      <div class="chat-pie" id="wk-chat-pie">
+        <div class="chat-atajos" id="wk-chat-atajos"></div>
+        <form class="chat-form" id="wk-chat-form" autocomplete="off">
+          <label class="oculto" for="wk-chat-input">Pregunta para LIA</label>
+          <div class="chat-form-fila">
+            <span class="chat-form-marca">
+              <span class="chat-form-ia">IA</span>
+            </span>
+            <input id="wk-chat-input" placeholder="Pregúntale a LIA: «¿riego hoy Vega Baja?»" />
+            <button class="va-enviar" type="submit" id="wk-chat-enviar">Preguntar</button>
+          </div>
+          <p class="chat-form-nota">Respuestas generadas por IA a partir de sensores, clima y registros de la finca. Puede equivocarse — revisa lo importante antes de mandar la cuadrilla.</p>
+        </form>
+      </div>
+    </main>
+  </div>
+</body>
+
+</html>

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LIA Agromyss | Prototipo 3.1</title>
+  <title>Agromyss | Panel operativo</title>
 
   <link rel="stylesheet" href="css/styles.css" />
   <script type="module" src="js/main.js"></script>
@@ -12,127 +12,92 @@
 <body>
   <div class="grain"></div>
 
-  <div class="shell">
-    <header class="topbar">
-      <div class="brand">
-        <div class="brand-logo">AGROMYSS</div>
-        <div class="brand-copy">
-          <strong>LIA</strong>
-          <span>Centro agrícola inteligente</span>
+  <div class="concept-shell" id="app">
+    <aside class="csb">
+      <div class="csb-logo">
+        <div class="csb-logo-mark">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.3">
+            <circle cx="12" cy="12" r="10.5" />
+            <path d="M12 4c2 3 2 6 0 9M12 4c-2 3-2 6 0 9M6 9c3-1 6-1 8 1M18 9c-3-1-6-1-8 1M8 17c1-3 3-5 6-6M8 14c2 0 4 1 5 3" />
+          </svg>
         </div>
+        <span class="csb-logo-text">Agromyss</span>
       </div>
 
-      <nav class="nav">
-        <button class="active" data-page="inicio">Inicio</button>
-        <button data-page="lotes">Lotes</button>
-        <button data-page="sensores">Sensores</button>
-        <button data-page="equipo">Equipo</button>
-        <button data-page="clima">Clima</button>
-        <button data-page="trazabilidad">Trazabilidad</button>
-        <button data-page="asistente">Asistente</button>
+      <nav class="csb-nav">
+        <button type="button" class="active" data-page="resumen"><span class="csb-nav-icon">▦</span>Resumen</button>
+        <button type="button" data-page="lotes"><span class="csb-nav-icon">🗺</span>Mapa de lotes</button>
+        <button type="button" data-page="clima"><span class="csb-nav-icon">☁</span>Clima</button>
+        <button type="button" data-page="sensores"><span class="csb-nav-icon">📡</span>Sensores</button>
+        <button type="button" data-page="tareas"><span class="csb-nav-icon">☑</span>Tareas</button>
+        <button type="button" data-page="reportes"><span class="csb-nav-icon">▤</span>Reportes</button>
+        <button type="button" data-page="insumos"><span class="csb-nav-icon">◧</span>Insumos</button>
+
+        <div class="csb-nav-titulo">Agente</div>
+        <button type="button" data-page="propuestas"><span class="csb-nav-icon">✓</span>Propuestas</button>
+        <a href="agente.html"><span class="csb-nav-icon">◎</span>Asistente</a>
+
+        <div class="csb-nav-titulo">Sistema</div>
+        <button type="button" data-page="config"><span class="csb-nav-icon">⚙</span>Configuración</button>
       </nav>
+    </aside>
 
-      <div class="user">
-        <div class="avatar">SG</div>
-        <div>
-          <strong>Sebastián</strong>
-          <span>Administrador finca</span>
+    <main class="csb-main">
+
+      <section id="resumen" class="page active">
+        <div class="c-head">
+          <div>
+            <h1>Resumen</h1>
+            <p>Panorama general de la operación</p>
+          </div>
+          <div class="c-head-actions">
+            <select class="c-select"><option>Campaña 2024/25</option></select>
+            <button type="button" class="c-select">Hoy</button>
+          </div>
         </div>
-      </div>
-    </header>
 
-    <main>
-      <section id="inicio" class="page active">
-        <div class="hero">
-          <div class="hero-main">
-            <div class="eyebrow">
-              <span class="dot"></span>
-              Prototipo 3.1 · Identidad Agromyss
+        <div class="c-stats">
+          <div class="c-stat">
+            <div class="c-stat-icon" style="background:var(--olive)">🌱</div>
+            <div><small>Superficie total</small><strong>1.250 ha</strong><span>8 lotes activos</span></div>
+          </div>
+          <div class="c-stat">
+            <div class="c-stat-icon" style="background:#7f9b4a">🌾</div>
+            <div><small>Cultivo principal</small><strong>Soja</strong><span>Etapa: R3</span></div>
+          </div>
+          <div class="c-stat">
+            <div class="c-stat-icon" style="background:var(--danger)">♥</div>
+            <div><small>Salud promedio</small><strong>78</strong><span>Buena</span></div>
+          </div>
+          <div class="c-stat">
+            <div class="c-stat-icon" style="background:var(--blue)">💧</div>
+            <div><small>Lluvia (7 días)</small><strong>24 mm</strong><span>+12% vs prom.</span></div>
+          </div>
+        </div>
+
+        <div class="c-grid">
+          <div class="c-card">
+            <div class="c-card-head">
+              <h3>Salud del cultivo</h3>
+              <select class="c-select"><option>NDVI</option></select>
             </div>
-
-            <div class="hero-center">
-              <h1>Panel operativo</h1>
-
-              <p>
-                Vista compacta de clima, lotes, alertas y tareas en un solo lugar.
-              </p>
-
-              <div class="actions">
-                <button class="btn light" onclick="openPage('asistente')">Preguntar a LIA</button>
-                <button class="btn secondary" onclick="openPage('trazabilidad')">Ver trazabilidad</button>
-                <button class="btn secondary" onclick="openPage('lotes')">Explorar lotes</button>
+            <div class="c-donut-row">
+              <div class="rings" style="width:112px;height:112px;border-width:14px;border-top-color:var(--olive);border-right-color:#a3a83a;border-bottom-color:var(--gold);">
+                <strong style="font-size:26px">78</strong>
+              </div>
+              <div class="c-donut-legend">
+                <div><i style="background:var(--olive)"></i>Excelente<b>28%</b></div>
+                <div><i style="background:#a3a83a"></i>Buena<b>50%</b></div>
+                <div><i style="background:var(--gold)"></i>Regular<b>15%</b></div>
+                <div><i style="background:var(--danger)"></i>Baja<b>7%</b></div>
               </div>
             </div>
+            <svg id="saludTrend" viewBox="0 0 300 90" preserveAspectRatio="none" style="width:100%;height:80px;margin-top:16px"></svg>
           </div>
 
-          <aside class="command">
-            <div class="card-title">
-              <h2>Comando LIA</h2>
-              <span class="live">En línea</span>
-            </div>
-
-            <div class="ai-message" id="aiMessage">
-              <strong>Resumen de hoy:</strong><br>
-              El Lote B de mango necesita revisión por humedad baja. Hay posible lluvia en la tarde,
-              por lo que no conviene programar aplicación foliar después de las 2:00 p.m.
-            </div>
-
-            <div class="quick-prompts">
-              <button class="prompt" onclick="askPreset('hoy')">¿Qué hacemos hoy?</button>
-              <button class="prompt" onclick="askPreset('riesgos')">Riesgos activos</button>
-              <button class="prompt" onclick="askPreset('lote')">Estado Lote B</button>
-              <button class="prompt" onclick="askPreset('whatsapp')">Mensaje WhatsApp</button>
-            </div>
-
-            <div class="chatbar">
-              <input id="chatInput" placeholder="Pregúntale algo a LIA..." />
-              <button class="btn" onclick="sendQuestion()">Enviar</button>
-            </div>
-          </aside>
-        </div>
-
-        <div class="metrics">
-          <div class="metric">
-            <div class="metric-icon">💧</div>
-            <div>
-              <small>Humedad suelo</small>
-                <strong id="homeMoisture">64%</strong>
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-icon">🌡</div>
-            <div>
-              <small>Temperatura</small>
-                <strong id="homeTemperature">27°C</strong>
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-icon">🌬</div>
-            <div>
-              <small>Dirección viento</small>
-                <strong id="homeWind">NE</strong>
-            </div>
-          </div>
-
-          <div class="metric">
-            <div class="metric-icon">☑</div>
-            <div>
-              <small>Tareas activas</small>
-                <strong id="homeTasks">12</strong>
-            </div>
-          </div>
-        </div>
-
-        <div class="bento">
-          <div class="tile large map-tile">
-            <div class="card-title">
-              <h3>Mapa vivo de la finca</h3>
-              <span class="pill blue">Mind map</span>
-            </div>
-
-            <div class="map-board">
+          <div class="c-card">
+            <h3>Mapa de lotes</h3>
+            <div class="map-board" style="min-height:230px">
               <div class="map-center">
                 <strong>Gateway central</strong>
                 <span>Conectividad 98% · 18 s</span>
@@ -171,95 +136,38 @@
               </div>
             </div>
           </div>
+        </div>
 
-          <div class="tile">
-            <small>Humedad promedio</small>
-            <div class="big-number" id="homeAverageMoisture">64%</div>
-            <p class="muted">Lectura estable, con excepción del Lote B.</p>
-          </div>
-
-          <div class="tile">
-            <small>Temperatura</small>
-            <div class="big-number" id="homeAverageTemperature">27°</div>
-            <p class="muted">Condición adecuada para labores de mantenimiento.</p>
-          </div>
-
-          <div class="tile tall risk-tile">
-            <div class="card-title">
-              <h3>Riesgo fitosanitario</h3>
-              <span class="pill yellow">Medio</span>
-            </div>
-
-            <div class="rings">
-              <strong>72</strong>
-            </div>
-
-            <p class="muted">
-              Índice demo calculado con humedad, temperatura, fotos pendientes y novedades MIPE.
-            </p>
-          </div>
-
-          <div class="tile tall">
-            <div class="card-title">
-              <h3>Plan del día</h3>
-              <span class="pill">12 tareas</span>
-            </div>
-
-            <div class="task-list">
-              <div class="task">
-                <div class="task-icon">💧</div>
-                <div>
-                  <strong>Revisar humedad en Lote B</strong>
-                  <span>Jefe de cuadrilla · 7:30 a.m.</span>
-                </div>
-                <span class="pill yellow">Alta</span>
+        <div class="c-cols-3">
+          <div class="c-card">
+            <h3>Clima</h3>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+              <span style="font-size:28px">⛅</span>
+              <div>
+                <strong style="font-size:20px;display:block" id="homeAverageTemperature2">22°C</strong>
+                <span class="muted" style="font-size:12px">Parcialmente nublado</span>
               </div>
-
-              <div class="task">
-                <div class="task-icon">📷</div>
-                <div>
-                  <strong>Fotos de árboles con manchas</strong>
-                  <span>Trabajador de campo · 9:00 a.m.</span>
-                </div>
-                <span class="pill blue">Media</span>
-              </div>
-
-              <div class="task">
-                <div class="task-icon">🌧</div>
-                <div>
-                  <strong>Registrar lluvia real</strong>
-                  <span>Campo · 4:00 p.m.</span>
-                </div>
-                <span class="pill">Normal</span>
-              </div>
+            </div>
+            <div class="c-clima-dias">
+              <div class="c-clima-dia">Hoy<strong>22°</strong>12°</div>
+              <div class="c-clima-dia">Jue<strong>23°</strong>13°</div>
+              <div class="c-clima-dia">Vie<strong>25°</strong>14°</div>
+              <div class="c-clima-dia">Sáb<strong>24°</strong>13°</div>
+              <div class="c-clima-dia">Dom<strong>21°</strong>11°</div>
             </div>
           </div>
 
-          <div class="tile wide">
-            <div class="card-title">
-              <h3>Alertas importantes</h3>
-              <span class="pill red">2 críticas</span>
-            </div>
+          <div class="c-card">
+            <h3>Sensores</h3>
+            <div class="c-list" id="resumenSensores"></div>
+          </div>
 
-            <div class="task-list">
-              <div class="task">
-                <div class="task-icon">⚠</div>
-                <div>
-                  <strong>Humedad baja en mango</strong>
-                  <span>Validar suelo antes de decidir riego o fertilización.</span>
-                </div>
-                <span class="pill yellow">Lote B</span>
-              </div>
-
-              <div class="task">
-                <div class="task-icon">☂</div>
-                <div>
-                  <strong>Posible lluvia en la tarde</strong>
-                  <span>Evitar aplicación foliar después de las 2:00 p.m.</span>
-                </div>
-                <span class="pill blue">Clima</span>
-              </div>
+          <div class="c-card">
+            <div class="c-card-head">
+              <h3>Tareas</h3>
+              <button type="button" class="ghost-btn" data-page="tareas">Ver todas</button>
             </div>
+            <div class="c-list" id="resumenTareas"></div>
           </div>
         </div>
       </section>
@@ -482,115 +390,6 @@
         </div>
       </section>
 
-      <section id="equipo" class="page">
-        <div class="panel">
-          <div class="section-head">
-            <div>
-              <span class="section-kicker">Cuadrilla activa</span>
-              <h2>Equipo de campo</h2>
-              <p class="section-copy">Asignaciones, carga de trabajo y mensajería directa con el agente.</p>
-            </div>
-            <div class="lote-toolbar">
-              <button class="chip active">Hoy</button>
-              <button class="chip">En campo</button>
-              <button class="chip">Pendientes</button>
-            </div>
-          </div>
-
-          <div class="team-grid">
-            <article class="team-card">
-              <div class="team-head">
-                <div class="team-avatar">JC</div>
-                <div>
-                  <h3>Juan Carlos</h3>
-                  <span>Jefe de cuadrilla</span>
-                </div>
-                <span class="pill">En ruta</span>
-              </div>
-              <div class="team-stats">
-                <div>
-                  <small>Tareas</small>
-                  <strong>4</strong>
-                </div>
-                <div>
-                  <small>Prioridad</small>
-                  <strong>Alta</strong>
-                </div>
-                <div>
-                  <small>Zona</small>
-                  <strong>Lote B</strong>
-                </div>
-              </div>
-              <p>Coordina validación de humedad y control de fotos.</p>
-              <div class="team-actions">
-                <button class="btn">Ver tareas</button>
-                <button class="btn secondary">Enviar mensaje</button>
-              </div>
-            </article>
-
-            <article class="team-card warning">
-              <div class="team-head">
-                <div class="team-avatar">MR</div>
-                <div>
-                  <h3>María R.</h3>
-                  <span>Campo y registros</span>
-                </div>
-                <span class="pill yellow">1 atrasada</span>
-              </div>
-              <div class="team-stats">
-                <div>
-                  <small>Lluvia</small>
-                  <strong>Registro 4pm</strong>
-                </div>
-                <div>
-                  <small>Zona</small>
-                  <strong>Lote A</strong>
-                </div>
-                <div>
-                  <small>Estado</small>
-                  <strong>En campo</strong>
-                </div>
-              </div>
-              <p>Debe cerrar actividad de lluvia real y subir confirmación.</p>
-              <div class="team-actions">
-                <button class="btn">Marcar tarea</button>
-                <button class="btn secondary">Recordar</button>
-              </div>
-            </article>
-
-            <article class="team-card blue">
-              <div class="team-head">
-                <div class="team-avatar">DL</div>
-                <div>
-                  <h3>Daniel L.</h3>
-                  <span>Fotos fitosanitarias</span>
-                </div>
-                <span class="pill blue">Pendiente fotos</span>
-              </div>
-              <div class="team-stats">
-                <div>
-                  <small>Fotos</small>
-                  <strong>0/3</strong>
-                </div>
-                <div>
-                  <small>Zona</small>
-                  <strong>Lote C</strong>
-                </div>
-                <div>
-                  <small>Entrega</small>
-                  <strong>10:30</strong>
-                </div>
-              </div>
-              <p>Encargado de subir fotos con manchas para diagnóstico.</p>
-              <div class="team-actions">
-                <button class="btn">Pedir fotos</button>
-                <button class="btn secondary">Asignar apoyo</button>
-              </div>
-            </article>
-          </div>
-        </div>
-      </section>
-
       <section id="clima" class="page">
         <div class="panel">
           <div class="section-head">
@@ -684,181 +483,96 @@
         </div>
       </section>
 
-      <section id="trazabilidad" class="page">
-        <div class="panel">
-          <h2>Trazabilidad del Lote A</h2>
-
-          <div class="timeline">
-            <div class="step">
-              <div class="step-number">01</div>
-              <div>
-                <h3>Registro del lote</h3>
-                <p>Área, cultivo, tipo de siembra, material vegetal y responsable.</p>
-              </div>
-              <span class="pill">Completado</span>
-            </div>
-
-            <div class="step">
-              <div class="step-number">02</div>
-              <div>
-                <h3>Análisis de suelo</h3>
-                <p>Documento cargado y futura recomendación de IA sobre enmiendas o fertilización.</p>
-              </div>
-              <span class="pill blue">Documento</span>
-            </div>
-
-            <div class="step">
-              <div class="step-number">03</div>
-              <div>
-                <h3>Mantenimiento</h3>
-                <p>Fertilización, podas, labores culturales, MIPE y aplicaciones fitosanitarias.</p>
-              </div>
-              <span class="pill yellow">Activo</span>
-            </div>
-
-            <div class="step">
-              <div class="step-number">04</div>
-              <div>
-                <h3>Cosecha</h3>
-                <p>Pesaje, clasificación, merma, calidad y generación del código de trazabilidad.</p>
-              </div>
-              <span class="pill">Próximo</span>
-            </div>
+      <section id="tareas" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Tareas</h1>
+            <p>Plan del día y asignaciones de la cuadrilla.</p>
           </div>
+        </div>
+        <div class="c-card">
+          <div class="task-list" id="taskListFull"></div>
         </div>
       </section>
 
-      <section id="asistente" class="page">
-        <div class="panel assistant-shell">
-          <div class="assistant-head">
-            <div>
-              <span class="section-kicker">Agente operativo</span>
-              <h2>Asistente LIA</h2>
-              <p class="section-copy">
-                Centro de decisiones: contexto, tareas, alertas y recomendaciones con aprobación humana.
-              </p>
-            </div>
-            <div class="agent-badges">
-              <span class="pill blue">Modo agente</span>
-              <span class="pill">Humano en bucle</span>
-              <span class="pill yellow">Vigilancia activa</span>
-            </div>
-          </div>
-
-          <div class="assistant-grid">
-            <aside class="command agent-console">
-              <div class="agent-toolbar">
-                <div class="agent-identity">
-                  <div class="agent-orb"></div>
-                  <div>
-                    <strong>LIA</strong>
-                    <span>Agente agrícola</span>
-                  </div>
-                </div>
-                <div class="agent-status">
-                  <span class="status-dot"></span>
-                  Listo para consultar
-                </div>
-              </div>
-
-              <div class="ai-message" id="bigAiMessage">
-                <div class="ai-label">LIA</div>
-                <div class="ai-body">
-                  Soy el asistente operativo de la finca. Pregunta y devolveré decisiones con contexto,
-                  evidencias y un plan sugerido para aprobación.
-                </div>
-              </div>
-
-              <div class="quick-prompts">
-                <button class="prompt" onclick="askBigPreset('plan')">Plan de mañana</button>
-                <button class="prompt" onclick="askBigPreset('mango')">Analizar mango</button>
-                <button class="prompt" onclick="askBigPreset('trabajadores')">Asignar trabajadores</button>
-                <button class="prompt" onclick="askBigPreset('resumen')">Resumen ejecutivo</button>
-              </div>
-
-              <div class="chatbar">
-                <input id="bigChatInput" placeholder="Escribe una pregunta para LIA..." />
-                <button class="btn" onclick="sendBigQuestion()">Enviar</button>
-              </div>
-
-              <div class="agent-foot">
-                <span class="pill">Memoria: 7 dias</span>
-                <span class="pill blue">Modelo: OpenClaw</span>
-                <span class="pill yellow">Aprobacion requerida</span>
-              </div>
-            </aside>
-
-            <div class="agent-stack">
-              <div class="agent-panel">
-                <h3>Contexto activo</h3>
-                <div class="agent-list">
-                  <div class="agent-item">
-                    <strong>Clima</strong>
-                    <span>Posible lluvia tarde, viento NE moderado.</span>
-                  </div>
-                  <div class="agent-item">
-                    <strong>Lote B</strong>
-                    <span>Humedad baja y alerta amarilla en mango.</span>
-                  </div>
-                  <div class="agent-item">
-                    <strong>Fotos pendientes</strong>
-                    <span>Diagnostico fitosanitario en Lote C.</span>
-                  </div>
-                </div>
-              </div>
-
-              <div class="agent-panel">
-                <h3>Acciones sugeridas</h3>
-                <div class="agent-actions">
-                  <div class="agent-action">
-                    <span class="pill yellow">Alta</span>
-                    <div>
-                      <strong>Verificar humedad Lote B</strong>
-                      <span>Validacion manual antes de riego o fertilizacion.</span>
-                    </div>
-                  </div>
-                  <div class="agent-action">
-                    <span class="pill blue">Media</span>
-                    <div>
-                      <strong>Solicitar fotos Lote C</strong>
-                      <span>Fotos de hojas para diagnostico de manchas.</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="agent-panel">
-                <h3>Herramientas conectadas</h3>
-                <div class="agent-tools">
-                  <span class="pill">Sensores</span>
-                  <span class="pill blue">Clima</span>
-                  <span class="pill">Trazabilidad</span>
-                  <span class="pill yellow">WhatsApp</span>
-                </div>
-              </div>
-
-              <div class="agent-panel">
-                <h3>Rastreo de decisiones</h3>
-                <div class="agent-timeline">
-                  <div class="agent-event">
-                    <span>08:10</span>
-                    <strong>Lectura de humedad recibida</strong>
-                  </div>
-                  <div class="agent-event">
-                    <span>08:12</span>
-                    <strong>Riesgo medio calculado</strong>
-                  </div>
-                  <div class="agent-event">
-                    <span>08:14</span>
-                    <strong>Plan propuesto a supervisor</strong>
-                  </div>
-                </div>
-              </div>
-            </div>
+      <section id="reportes" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Reportes</h1>
+            <p>Próximamente.</p>
           </div>
         </div>
+        <div class="c-card">
+          <p class="muted">Los reportes de campaña (cosecha, insumos, mano de obra) van a vivir acá. Todavía no están conectados.</p>
+        </div>
       </section>
+
+      <section id="insumos" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Insumos</h1>
+            <p>Próximamente.</p>
+          </div>
+        </div>
+        <div class="c-card">
+          <p class="muted">El control de stock e insumos va a vivir acá. Todavía no está conectado.</p>
+        </div>
+      </section>
+
+      <section id="propuestas" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Propuestas</h1>
+            <p>Recomendaciones de LIA a la espera de tu aprobación.</p>
+          </div>
+        </div>
+        <div class="c-card">
+          <h3>Acciones sugeridas</h3>
+          <div class="agent-actions"></div>
+        </div>
+        <div class="c-card" style="margin-top:16px">
+          <h3>Rastreo de decisiones</h3>
+          <div class="agent-timeline"></div>
+        </div>
+      </section>
+
+      <section id="config" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Configuración</h1>
+            <p>Próximamente.</p>
+          </div>
+        </div>
+        <div class="c-card">
+          <p class="muted">Ajustes de cuenta, finca y notificaciones van a vivir acá. Todavía no están conectados.</p>
+        </div>
+      </section>
+
     </main>
+
+    <aside class="csb-lia">
+      <div class="csb-lia-head">
+        <strong>LIA</strong>
+        <span>Asistente inteligente</span>
+      </div>
+
+      <div class="csb-lia-insight" id="liaInsight">
+        El índice de salud mejoró 5 puntos en la última semana. Buen desarrollo en los lotes del norte.
+      </div>
+
+      <div>
+        <div class="csb-lia-sugerencias-titulo">Sugerencias</div>
+        <div class="csb-lia-sugerencias" id="liaSugerencias"></div>
+      </div>
+
+      <div class="csb-lia-log" id="liaLog"></div>
+
+      <div class="csb-lia-chat">
+        <input id="chatInput" placeholder="Preguntá a LIA..." />
+        <button type="button" id="chatSend">➤</button>
+      </div>
+    </aside>
   </div>
 </body>
+
 </html>

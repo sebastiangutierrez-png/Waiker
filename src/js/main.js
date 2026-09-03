@@ -1,14 +1,10 @@
 import { enviarMensaje, hayConexion } from "./api.js";
-import { HILO_DEMO, REGISTRO_DEMO } from "./data.js";
+import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR } from "./data.js";
 
-const navButtons = document.querySelectorAll(".nav button");
+const navButtons = document.querySelectorAll(".csb-nav [data-page]");
 const pages = document.querySelectorAll(".page");
 
-let aiMessageLocked = false;
 let booting = true;
-
-/** Historial de conversación por caja de chat (Comando LIA / Asistente). */
-const historiales = { aiMessage: [], bigAiMessage: [] };
 
 /**
  * Hilo de propuestas del agente + registro de decisiones, para la pestaña
@@ -38,6 +34,7 @@ function decidir(ancla, valor) {
   decisiones[ancla] = valor;
   renderAcciones();
   renderTimeline();
+  renderSugerencias();
 }
 window.decidir = decidir;
 
@@ -144,6 +141,13 @@ navButtons.forEach((button) => {
   });
 });
 
+// "Ver todas" en la tarjeta Tareas del Resumen también navega, pero no es
+// parte del sidebar así que no debe recibir el estado "active" de la nav.
+document.querySelectorAll("[data-page]:not(.csb-nav [data-page])").forEach((el) => {
+  if (el.closest(".csb-nav")) return;
+  el.addEventListener("click", () => openPage(el.dataset.page));
+});
+
 function openPage(pageId) {
   navButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.page === pageId);
@@ -153,7 +157,7 @@ function openPage(pageId) {
     page.classList.toggle("active", page.id === pageId);
   });
 
-  window.scrollTo({ top: 0, behavior: "smooth" });
+  document.querySelector(".csb-main")?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 function mockFetchTelemetry() {
@@ -243,11 +247,6 @@ function renderDemoDashboard(state) {
   setText("homeAverageTemperature", `${state.home.temperature}°`);
   setText("homeWind", state.home.wind);
   setText("homeTasks", String(state.home.tasks));
-
-  const aiMessage = document.getElementById("aiMessage");
-  if (aiMessage && !aiMessageLocked) {
-    aiMessage.innerHTML = `<strong>Resumen de hoy:</strong><br>Humedad promedio ${state.home.moisture}%, temperatura ${state.home.temperature}°C y riesgo fitosanitario ${state.home.risk}%. El Lote B sigue en atención por humedad baja.`;
-  }
 
   if (booting) {
     document.body.classList.remove("is-booting");
@@ -366,84 +365,120 @@ function actualizarEstadoAgente(conectado) {
   }
 }
 
-async function askAi(prompt, targetId) {
-  const element = document.getElementById(targetId);
-  if (!element) return;
+// ═══════════ panel LIA (sidebar derecho) ═══════════
 
-  const promptContainer = element.closest(".command")?.querySelector(".quick-prompts");
-  if (promptContainer) {
-    promptContainer.classList.add("hidden");
-  }
+const liaHistorial = [];
 
-  aiMessageLocked = true;
-  element.classList.add("loading");
-  element.innerHTML = "<div class=\"ai-label\">LIA</div><div class=\"ai-body\">Consultando...</div>";
+async function preguntarLia(prompt) {
+  const insight = document.getElementById("liaInsight");
+  const log = document.getElementById("liaLog");
+  if (!insight) return;
 
-  const historial = historiales[targetId] || (historiales[targetId] = []);
-  historial.push({ rol: "yo", texto: prompt });
+  insight.textContent = "Consultando…";
+  liaHistorial.push({ rol: "yo", texto: prompt });
+
+  const agregarLog = (texto) => {
+    if (!log) return;
+    const fila = document.createElement("div");
+    fila.textContent = texto;
+    log.prepend(fila);
+  };
+
+  agregarLog(`Vos: ${prompt}`);
 
   try {
-    const reply = await enviarMensaje(historial, {});
-    historial.push({ rol: "lia", texto: reply });
-    element.classList.remove("loading");
-    element.innerHTML = `<div class=\"ai-label\">LIA</div><div class=\"ai-body\">${renderMarkdown(reply)}</div>`;
+    const reply = await enviarMensaje(liaHistorial, {});
+    liaHistorial.push({ rol: "lia", texto: reply });
+    insight.innerHTML = renderMarkdown(reply);
+    agregarLog(`LIA: ${reply}`);
     actualizarEstadoAgente(true);
   } catch (error) {
     const fallback = getReply(prompt);
-    historial.push({ rol: "lia", texto: fallback });
-    element.classList.remove("loading");
-    element.innerHTML = `<div class=\"ai-label\">LIA</div><div class=\"ai-body\">${renderMarkdown(fallback)}</div>`;
+    liaHistorial.push({ rol: "lia", texto: fallback });
+    insight.innerHTML = renderMarkdown(fallback);
+    agregarLog(`LIA: ${fallback}`);
     actualizarEstadoAgente(false);
   }
 }
 
-function askPreset(type) {
-  const prompts = {
-    hoy: "¿Qué hacemos hoy?",
-    riesgos: "Riesgos activos",
-    lote: "Estado Lote B",
-    whatsapp: "Mensaje WhatsApp"
-  };
-
-  askAi(prompts[type], "aiMessage");
-}
-
-function sendQuestion() {
+function enviarPreguntaLia() {
   const input = document.getElementById("chatInput");
-  const text = input.value.trim();
-  if (!text) return;
-
-  askAi(text, "aiMessage");
+  if (!input) return;
+  const texto = input.value.trim();
+  if (!texto) return;
   input.value = "";
+  preguntarLia(texto);
 }
 
-function askBigPreset(type) {
-  const prompts = {
-    plan: "Plan de mañana",
-    mango: "Analizar mango",
-    trabajadores: "Asignar trabajadores",
-    resumen: "Resumen ejecutivo"
+document.getElementById("chatSend")?.addEventListener("click", enviarPreguntaLia);
+document.getElementById("chatInput")?.addEventListener("keydown", (event) => {
+  if (event.key === "Enter") enviarPreguntaLia();
+});
+
+function renderSugerencias() {
+  const cont = document.getElementById("liaSugerencias");
+  if (!cont) return;
+
+  const prioridad = {
+    clay: ["Prioridad alta", "var(--danger)"],
+    wheat: ["Prioridad media", "var(--gold)"],
+    leaf: ["Prioridad baja", "var(--olive)"],
   };
 
-  askAi(prompts[type], "bigAiMessage");
+  const pendientes = acciones().filter((h) => modoDe(h) === "pendiente");
+  cont.innerHTML = pendientes.length
+    ? pendientes.map((h) => {
+      const [texto, color] = prioridad[h.tono] || prioridad.wheat;
+      return `
+        <div class="csb-sug">
+          <div class="csb-sug-icon" style="background:${color}">●</div>
+          <div>
+            <strong>${escapeHtml(h.lead)}</strong>
+            <em style="color:${color}">${texto}</em>
+          </div>
+        </div>`;
+    }).join("")
+    : `<div class="csb-sug"><div class="csb-sug-icon" style="background:var(--olive)">✓</div><div><strong>Sin sugerencias pendientes.</strong></div></div>`;
 }
 
-function sendBigQuestion() {
-  const input = document.getElementById("bigChatInput");
-  const text = input.value.trim();
-  if (!text) return;
+// ═══════════ Resumen: listas de sensores y tareas ═══════════
 
-  askAi(text, "bigAiMessage");
-  input.value = "";
+function renderResumenSensores() {
+  const cont = document.getElementById("resumenSensores");
+  if (!cont) return;
+  cont.innerHTML = SENSORES.slice(0, 4).map((s) => `
+    <div class="c-list-row">
+      <div><strong>${escapeHtml(s.id)}</strong><span>${escapeHtml(s.lugar)}</span></div>
+      <span style="color:${COLOR_SENSOR[s.estado]};font-weight:800">${s.valor}${s.unidad}</span>
+    </div>`).join("");
 }
 
-document.getElementById("chatInput").addEventListener("keydown", (event) => {
-  if (event.key === "Enter") sendQuestion();
-});
+function renderTareas(containerId, limite) {
+  const cont = document.getElementById(containerId);
+  if (!cont) return;
+  const lista = limite ? TAREAS.slice(0, limite) : TAREAS;
+  cont.innerHTML = lista.map(([etiqueta, lote, horas], i) => `
+    <div class="c-list-row">
+      <div>
+        <strong style="${TAREAS_HECHAS[i] ? "text-decoration:line-through;color:var(--muted)" : ""}">${escapeHtml(etiqueta)}</strong>
+        <span>${escapeHtml(lote)} · ${escapeHtml(horas)}</span>
+      </div>
+    </div>`).join("");
+}
 
-document.getElementById("bigChatInput").addEventListener("keydown", (event) => {
-  if (event.key === "Enter") sendBigQuestion();
-});
+function renderSaludTrend() {
+  const svg = document.getElementById("saludTrend");
+  if (!svg) return;
+  const serie = [64, 66, 68, 67, 70, 73, 75, 74, 76, 77, 78, 78];
+  const w = 300, h = 90, pad = 6;
+  const max = Math.max(...serie), min = Math.min(...serie), span = (max - min) || 1;
+  const puntos = serie.map((v, i) => {
+    const x = pad + (i / (serie.length - 1)) * (w - pad * 2);
+    const y = h - pad - ((v - min) / span) * (h - pad * 2);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(" ");
+  svg.innerHTML = `<polyline points="${puntos}" fill="none" stroke="var(--olive)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
+}
 
 // ═══════════ Asistente: propuestas reales + registro de decisiones ═══════════
 
@@ -488,6 +523,11 @@ function renderTimeline() {
 cargarHilo();
 renderAcciones();
 renderTimeline();
+renderSugerencias();
+renderResumenSensores();
+renderTareas("resumenTareas", 4);
+renderTareas("taskListFull", null);
+renderSaludTrend();
 hayConexion().then(actualizarEstadoAgente);
 
 mockFetchTelemetry().then(renderDemoDashboard);
@@ -498,11 +538,3 @@ setInterval(() => {
   demoState.home.risk = Math.max(58, Math.min(82, demoState.home.risk + (Math.random() > 0.5 ? 1 : -1)));
   renderDemoDashboard(demoState);
 }, 12000);
-
-// El HTML llama a estas funciones desde atributos onclick="..."; con
-// type="module" ya no son globales implícitas, así que se exponen a mano.
-window.openPage = openPage;
-window.askPreset = askPreset;
-window.sendQuestion = sendQuestion;
-window.askBigPreset = askBigPreset;
-window.sendBigQuestion = sendBigQuestion;
