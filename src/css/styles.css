@@ -1130,9 +1130,52 @@ h1 span {
 
 .sensor-summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
   margin-bottom: 18px;
+}
+
+.sensor-lote-card {
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  background: rgba(255,255,255,.6);
+  padding: 16px 18px;
+}
+
+.sensor-lote-card h3 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  color: var(--forest);
+}
+
+.sensor-metric-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+}
+
+.sensor-metric-row:first-of-type {
+  border-top: 0;
+}
+
+.sensor-metric-row .sensor-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.sensor-metric-row .sensor-tipo {
+  flex: 1;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.sensor-metric-row .sensor-valor {
+  font-weight: 800;
+  color: var(--text);
 }
 
 .sensor-card h3 {

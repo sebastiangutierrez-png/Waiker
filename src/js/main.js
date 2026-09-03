@@ -63,27 +63,25 @@ function openPage(pageId) {
   document.querySelector(".csb-main")?.scrollTo({ top: 0, behavior: "smooth" });
 }
 
-function tonoSensor(estado) {
-  return estado === "aviso" ? "yellow" : estado === "alerta" ? "red" : estado === "sin señal" ? "" : "blue";
-}
-
 function renderSensoresPagina() {
   const cards = document.getElementById("sensorCards");
-  const lista = document.getElementById("sensorReadingList");
-  if (!cards || !lista) return;
+  if (!cards) return;
 
-  cards.innerHTML = SENSORES.map((s) => `
-    <div class="info-card sensor-card">
-      <span class="pill ${tonoSensor(s.estado)}">${escapeHtml(s.tipo || s.id)}</span>
-      <h3>${escapeHtml(s.lugar)}</h3>
-      <p>${s.valor}${escapeHtml(s.unidad)}</p>
-      <small style="color:${COLOR_SENSOR[s.estado]}">${escapeHtml(s.estado)}</small>
-    </div>`).join("");
+  const porLugar = new Map();
+  SENSORES.forEach((s) => {
+    if (!porLugar.has(s.lugar)) porLugar.set(s.lugar, []);
+    porLugar.get(s.lugar).push(s);
+  });
 
-  lista.innerHTML = SENSORES.map((s) => `
-    <div class="reading">
-      <strong>${escapeHtml(s.lugar)} · ${escapeHtml(s.tipo || s.id)}</strong>
-      <span style="color:${COLOR_SENSOR[s.estado]}">${s.valor}${escapeHtml(s.unidad)} · ${escapeHtml(s.estado)}</span>
+  cards.innerHTML = [...porLugar.entries()].map(([lugar, sensores]) => `
+    <div class="sensor-lote-card">
+      <h3>${escapeHtml(lugar)}</h3>
+      ${sensores.map((s) => `
+        <div class="sensor-metric-row" title="${escapeHtml(s.id)} · ${escapeHtml(s.estado)}">
+          <span class="sensor-dot" style="background:${COLOR_SENSOR[s.estado]}"></span>
+          <span class="sensor-tipo">${escapeHtml(s.tipo || s.id)}</span>
+          <span class="sensor-valor">${s.valor}${escapeHtml(s.unidad)}</span>
+        </div>`).join("")}
     </div>`).join("");
 }
 
@@ -101,6 +99,7 @@ function renderPronostico({ actual, horas }) {
   if (actual) {
     setTexto("climaHoy", `${actual.temp}°C · ${actual.condicion}`);
     setTexto("climaVentana", actual.ventana ? `Ventana recomendada de aplicaciones: ${actual.ventana}` : undefined);
+    setTexto("climaLluviaAviso", actual.notaLluvia);
     setTexto("climaLluviaProb", `${actual.lluviaProb}%`);
     setTexto("climaActualizado", `Actualizado ${actual.actualizado}`);
     setTexto("climaTempCard", `${actual.temp}°C`);

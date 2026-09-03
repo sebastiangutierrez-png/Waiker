@@ -86,6 +86,18 @@ function aFormato(json) {
 
   const probMaxHoy = d.precipitation_probability_max[0] ?? 0;
 
+  // Aviso de lluvia: si ya está lloviendo, decirlo; si no, buscar la próxima
+  // hora con probabilidad alta y avisar a qué hora se espera.
+  let notaLluvia;
+  if (c.precipitation > 0) {
+    notaLluvia = "Lluvia en curso";
+  } else {
+    const iProxima = probs.findIndex((p) => p >= 50);
+    notaLluvia = iProxima !== -1
+      ? `Lluvia esperada a las ${HORA_FMT.format(new Date(json.hourly.time[desde + iProxima]))}`
+      : "Sin lluvia prevista en las próximas horas";
+  }
+
   return {
     actual: {
       temp: Math.round(c.temperature_2m),
@@ -97,6 +109,7 @@ function aFormato(json) {
       lluviaTexto: probMaxHoy >= 50 ? "Probable hoy" : probMaxHoy >= 20 ? "Posible más tarde" : "Sin lluvia prevista",
       pluviometriaMm: Math.round((d.precipitation_sum[0] ?? 0) * 10) / 10,
       ventana,
+      notaLluvia,
       actualizado: HORA_FMT.format(new Date())
     },
     horas
