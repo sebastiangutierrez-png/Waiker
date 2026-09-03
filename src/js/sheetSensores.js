@@ -22,7 +22,7 @@
 
 const SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-EaYV4j-bkTMKs9MAmSH1UiQQApq0dR_WU0MqP9356af0nHCBQywbZfL5tCgbTHZBnjt-UcqHKbU/pub?gid=1737731176&single=true&output=csv";
 
-const ESTADOS_VALIDOS = new Set(["ok", "aviso", "alerta", "sin señal"]);
+const ESTADOS_VALIDOS = ["ok", "aviso", "alerta", "sin señal"];
 
 function parseCSV(texto) {
   const filas = [];
@@ -68,13 +68,16 @@ function filasAObjetos(filas) {
   if (iId === -1) return [];
 
   return filas.slice(1).map((fila) => {
+    // Comparamos normalizado (sin acentos/mayúsculas) pero guardamos el valor
+    // canónico con ñ/acentos intactos, para no perder "sin señal" al comparar.
     const estadoCrudo = normalizarEncabezado(fila[iEstado] ?? "");
+    const estado = ESTADOS_VALIDOS.find((e) => normalizarEncabezado(e) === estadoCrudo) ?? "ok";
     return {
       id: (fila[iId] ?? "").trim(),
       lugar: (fila[iLugar] ?? "").trim(),
       valor: Number(String(fila[iValor] ?? "0").replace(",", ".")) || 0,
       unidad: (fila[iUnidad] ?? "").trim(),
-      estado: ESTADOS_VALIDOS.has(estadoCrudo) ? estadoCrudo : "ok"
+      estado
     };
   }).filter((s) => s.id);
 }
