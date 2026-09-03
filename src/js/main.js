@@ -65,7 +65,10 @@ function openPage(pageId) {
 
 function renderSensoresPagina() {
   const cards = document.getElementById("sensorCards");
-  if (!cards) return;
+  // Si SENSORES está vacío (p.ej. una sincronización llegó a mitad de una
+  // edición en la hoja y trajo cero filas válidas), no se borra lo que ya
+  // había pintado — mejor mostrar datos viejos que una página en blanco.
+  if (!cards || !SENSORES.length) return;
 
   const porLugar = new Map();
   SENSORES.forEach((s) => {
@@ -299,7 +302,7 @@ function renderSugerencias() {
 
 function renderResumenSensores() {
   const cont = document.getElementById("resumenSensores");
-  if (!cont) return;
+  if (!cont || !SENSORES.length) return;
   cont.innerHTML = SENSORES.slice(0, 4).map((s) => `
     <div class="c-list-row">
       <div><strong>${escapeHtml(s.lugar)}</strong><span>${escapeHtml(s.tipo || s.id)}</span></div>
