@@ -421,7 +421,7 @@ function renderChatPie() {
   $("wk-chat-pie").hidden = oculto;
   if (oculto) return;
 
-  $("wk-chat-atajos").innerHTML = ATAJOS_DEMO.map((a) =>
+  $("wk-chat-atajos").innerHTML = ATAJOS_DEMO.slice(0, 2).map((a) =>
     `<button type="button" class="pastilla" data-accion="atajo" data-valor="${esc(a)}">${esc(a)}</button>`).join("");
 
   $("wk-chat-estado") && ($("wk-chat-estado").textContent = S.conectado ? "en línea" : "sin conexión");
