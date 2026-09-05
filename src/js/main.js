@@ -98,7 +98,7 @@ function setTexto(id, valor) {
   if (el && valor !== undefined && valor !== null && valor !== "") el.textContent = valor;
 }
 
-function renderPronostico({ actual, horas }) {
+function renderPronostico({ actual, horas, dias }) {
   if (actual) {
     setTexto("climaHoy", `${actual.temp}°C · ${actual.condicion}`);
     setTexto("climaVentana", actual.ventana ? `Ventana recomendada de aplicaciones: ${actual.ventana}` : undefined);
@@ -110,6 +110,11 @@ function renderPronostico({ actual, horas }) {
     setTexto("climaVientoCard", `${actual.vientoDir} · ${actual.vientoKmh} km/h`);
     setTexto("climaLluviaCard", actual.lluviaTexto);
     setTexto("climaPluvCard", `${actual.pluviometriaMm} mm`);
+
+    // Mismo dato en la tarjeta compacta de Clima del Resumen — antes era
+    // texto fijo, nunca conectado al pronóstico real.
+    setTexto("homeAverageTemperature2", `${actual.temp}°C`);
+    setTexto("homeCondicion", actual.condicion);
   }
 
   if (horas.length) {
@@ -121,6 +126,14 @@ function renderPronostico({ actual, horas }) {
           <span>${h.temp}°</span>
           <small>${escapeHtml(h.nota)}</small>
         </div>`).join("");
+    }
+  }
+
+  if (dias?.length) {
+    const franja = document.getElementById("homeClimaDias");
+    if (franja) {
+      franja.innerHTML = dias.map((d) => `
+        <div class="c-clima-dia">${escapeHtml(d.etiqueta)}<strong>${d.max}°</strong>${d.min}°</div>`).join("");
     }
   }
 }

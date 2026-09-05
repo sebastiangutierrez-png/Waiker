@@ -18,8 +18,8 @@ const URL_PRONOSTICO =
   `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}` +
   `&current=temperature_2m,relative_humidity_2m,precipitation,wind_speed_10m,wind_direction_10m,weather_code` +
   `&hourly=temperature_2m,weather_code,precipitation_probability` +
-  `&daily=precipitation_probability_max,precipitation_sum` +
-  `&timezone=${encodeURIComponent(ZONA_HORARIA)}&forecast_days=1`;
+  `&daily=precipitation_probability_max,precipitation_sum,temperature_2m_max,temperature_2m_min,weather_code` +
+  `&timezone=${encodeURIComponent(ZONA_HORARIA)}&forecast_days=5`;
 
 // Códigos WMO que usa Open-Meteo → texto corto en español.
 const CONDICIONES = {
@@ -44,6 +44,8 @@ function direccionCompass(grados) {
 }
 
 const HORA_FMT = new Intl.DateTimeFormat("es-CO", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: ZONA_HORARIA });
+const DIA_FMT = new Intl.DateTimeFormat("es-CO", { weekday: "short", timeZone: ZONA_HORARIA });
+const capitalizar = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** Convierte la respuesta de Open-Meteo a la misma forma { actual, horas }
  *  que ya consume renderPronostico() en main.js, para no duplicar lógica
@@ -98,6 +100,12 @@ function aFormato(json) {
       : "Sin lluvia prevista en las próximas horas";
   }
 
+  const dias = d.time.map((iso, i) => ({
+    etiqueta: i === 0 ? "Hoy" : capitalizar(DIA_FMT.format(new Date(iso + "T12:00:00"))).replace(/\.$/, ""),
+    max: Math.round(d.temperature_2m_max[i]),
+    min: Math.round(d.temperature_2m_min[i])
+  }));
+
   return {
     actual: {
       temp: Math.round(c.temperature_2m),
@@ -112,7 +120,8 @@ function aFormato(json) {
       notaLluvia,
       actualizado: HORA_FMT.format(new Date())
     },
-    horas
+    horas,
+    dias
   };
 }
 
