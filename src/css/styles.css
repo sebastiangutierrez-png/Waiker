@@ -2534,3 +2534,214 @@ h1 span {
   .pagina-agente .csb-main { height: auto; }
   .pagina-agente .vista-chat { flex: none; max-height: 60vh; }
 }
+/* ═══════════ Bloques de laboratorio (suelos, foliares, catación) ═══════════ */
+
+.fert-cifra {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 12px 0 14px;
+}
+
+.fert-cifra strong {
+  font-size: 34px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.fert-cifra span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.fert-bandas {
+  display: grid;
+  gap: 9px;
+}
+
+.fert-fila {
+  display: grid;
+  grid-template-columns: 130px 1fr 20px;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.fert-nombre {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--muted);
+}
+
+.fert-nombre i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.fert-fila b {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.lote-codigo {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+
+.lote-lecturas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.lote-lectura {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 11.5px;
+  color: var(--text);
+  background: var(--paper);
+}
+
+.lote-lectura i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.calidad-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 16px;
+  margin-top: 14px;
+}
+
+.calidad-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  padding: 18px;
+}
+
+.calidad-card > p {
+  font-size: 12.5px;
+  color: var(--text);
+  margin: 12px 0 0;
+  line-height: 1.55;
+}
+
+.calidad-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.calidad-head h4 {
+  margin: 0 0 3px;
+  font-size: 15px;
+}
+
+.calidad-head .mono {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.calidad-nota {
+  text-align: right;
+  flex: none;
+}
+
+.calidad-nota strong {
+  display: block;
+  font-size: 30px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.calidad-nota span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.calidad-perfil {
+  display: grid;
+  gap: 7px;
+  margin-top: 14px;
+}
+
+.calidad-fila {
+  display: grid;
+  grid-template-columns: 96px 1fr 28px;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.calidad-fila b {
+  text-align: right;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* La tabla de suelos tiene 12 columnas: en pantallas angostas se desplaza
+   dentro de su propia caja, nunca empuja el ancho de la página. */
+.tabla-scroll {
+  overflow-x: auto;
+  margin-top: 12px;
+}
+
+.lab-tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.lab-tabla th {
+  text-align: left;
+  padding: 8px 12px 8px 0;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--line);
+}
+
+.lab-tabla td {
+  padding: 9px 12px 9px 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-tabla tbody tr + tr td {
+  border-top: 1px solid var(--line);
+}
+
+.lab-tabla th:first-child,
+.lab-tabla td:first-child {
+  position: sticky;
+  left: 0;
+  background: var(--paper);
+  padding-right: 18px;
+}
+
+@media (max-width: 720px) {
+  .fert-fila {
+    grid-template-columns: 108px 1fr 20px;
+  }
+
+  .calidad-fila {
+    grid-template-columns: 84px 1fr 28px;
+  }
+}

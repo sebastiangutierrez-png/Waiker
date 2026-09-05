@@ -3,10 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agromyss | Panel operativo</title>
+  <title>Agromyss | Hacienda Mesetas</title>
 
-  <link rel="stylesheet" href="css/styles.css?v=3" />
-  <script type="module" src="js/main.js"></script>
+  <!-- Phosphor Icons (familia única en todo el panel). Reemplazó a los
+       emojis que se usaban antes como iconos de navegación y de tarjeta. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+  <link rel="stylesheet" href="css/styles.css?v=4" />
+  <script type="module" src="js/main.js?v=2"></script>
 </head>
 
 <body>
@@ -19,20 +22,20 @@
       </div>
 
       <nav class="csb-nav">
-        <button type="button" class="active" data-page="resumen"><span class="csb-nav-icon">▦</span>Resumen</button>
-        <button type="button" data-page="lotes"><span class="csb-nav-icon">🗺</span>Mapa de lotes</button>
-        <button type="button" data-page="clima"><span class="csb-nav-icon">☁</span>Clima</button>
-        <button type="button" data-page="sensores"><span class="csb-nav-icon">📡</span>Sensores</button>
-        <button type="button" data-page="tareas"><span class="csb-nav-icon">☑</span>Tareas</button>
-        <button type="button" data-page="reportes"><span class="csb-nav-icon">▤</span>Reportes</button>
-        <button type="button" data-page="insumos"><span class="csb-nav-icon">◧</span>Insumos</button>
+        <button type="button" class="active" data-page="resumen"><i class="ph ph-squares-four csb-nav-icon"></i>Resumen</button>
+        <button type="button" data-page="lotes"><i class="ph ph-map-trifold csb-nav-icon"></i>Lotes</button>
+        <button type="button" data-page="clima"><i class="ph ph-cloud-sun csb-nav-icon"></i>Clima</button>
+        <button type="button" data-page="sensores"><i class="ph ph-thermometer-simple csb-nav-icon"></i>Sensores</button>
+        <button type="button" data-page="tareas"><i class="ph ph-check-square csb-nav-icon"></i>Tareas</button>
+        <button type="button" data-page="reportes"><i class="ph ph-flask csb-nav-icon"></i>Laboratorio</button>
+        <button type="button" data-page="insumos"><i class="ph ph-package csb-nav-icon"></i>Insumos</button>
 
         <div class="csb-nav-titulo">Agente</div>
-        <button type="button" data-page="propuestas"><span class="csb-nav-icon">✓</span>Propuestas</button>
-        <a href="agente.html"><span class="csb-nav-icon">◎</span>Asistente</a>
+        <button type="button" data-page="propuestas"><i class="ph ph-lightbulb csb-nav-icon"></i>Propuestas</button>
+        <a href="agente.html"><i class="ph ph-chat-circle-dots csb-nav-icon"></i>Asistente</a>
 
         <div class="csb-nav-titulo">Sistema</div>
-        <button type="button" data-page="config"><span class="csb-nav-icon">⚙</span>Configuración</button>
+        <button type="button" data-page="config"><i class="ph ph-gear csb-nav-icon"></i>Configuración</button>
       </nav>
     </aside>
 
@@ -41,8 +44,8 @@
       <section id="resumen" class="page active">
         <div class="c-head">
           <div>
-            <h1>Resumen</h1>
-            <p>Panorama general de la operación</p>
+            <h1>Hacienda Mesetas</h1>
+            <p>Vereda Santa Bárbara, Maceo · Cañón del río Alicante</p>
           </div>
           <div class="c-head-actions">
             <select class="c-select"><option>Campaña 2025/26</option></select>
@@ -50,84 +53,33 @@
           </div>
         </div>
 
-        <div class="c-stats">
-          <div class="c-stat">
-            <div class="c-stat-icon" style="background:var(--olive)">🌱</div>
-            <div><small>Superficie total</small><strong>1.250 ha</strong><span>8 lotes activos</span></div>
-          </div>
-          <div class="c-stat">
-            <div class="c-stat-icon" style="background:#7f9b4a">🍫</div>
-            <div><small>Cultivo principal</small><strong>Cacao</strong><span>Fase: Fructificación</span></div>
-          </div>
-          <div class="c-stat">
-            <div class="c-stat-icon" style="background:var(--danger)">♥</div>
-            <div><small>Salud promedio</small><strong>78</strong><span>Buena</span></div>
-          </div>
-          <div class="c-stat">
-            <div class="c-stat-icon" style="background:var(--blue)">💧</div>
-            <div><small>Lluvia (7 días)</small><strong>24 mm</strong><span>+12% vs prom.</span></div>
-          </div>
-        </div>
+        <div class="c-stats" id="resumenStats"></div>
 
         <div class="c-grid">
           <div class="c-card">
             <div class="c-card-head">
-              <h3>Salud del cultivo</h3>
-              <select class="c-select"><option>NDVI</option></select>
+              <h3>Fertilidad del suelo</h3>
+              <span class="pill">Análisis 2023</span>
             </div>
-            <div class="c-donut-row">
-              <div class="rings" style="width:112px;height:112px;border-width:14px;border-top-color:var(--olive);border-right-color:#a3a83a;border-bottom-color:var(--gold);">
-                <strong style="font-size:26px">78</strong>
-              </div>
-              <div class="c-donut-legend">
-                <div><i style="background:var(--olive)"></i>Excelente<b>28%</b></div>
-                <div><i style="background:#a3a83a"></i>Buena<b>50%</b></div>
-                <div><i style="background:var(--gold)"></i>Regular<b>15%</b></div>
-                <div><i style="background:var(--danger)"></i>Baja<b>7%</b></div>
-              </div>
+            <div class="fert-cifra">
+              <strong id="fertilidadValor">-</strong>
+              <span>pH promedio de los 6 lotes</span>
             </div>
-            <svg id="saludTrend" viewBox="0 0 300 90" preserveAspectRatio="none" style="width:100%;height:36px;margin-top:10px"></svg>
+            <div class="fert-bandas" id="fertilidadBandas"></div>
+            <p class="muted" style="font-size:11.5px;margin-top:10px">
+              El rango deseable para cacao va de 5,5 a 6,5. Por debajo de 5,5 el aluminio
+              empieza a bloquear la absorción de fósforo y calcio.
+            </p>
           </div>
 
           <div class="c-card">
-            <h3>Mapa de lotes</h3>
+            <h3>Lotes</h3>
             <div class="map-board" style="min-height:230px">
               <div class="map-center">
-                <strong>Gateway central</strong>
-                <span>Conectividad 98% · 18 s</span>
+                <strong>Beneficiadero</strong>
+                <span>Fermentación y secado en sitio</span>
               </div>
-              <div class="map-grid">
-                <div class="map-card">
-                  <span class="pill">Estable</span>
-                  <h4>Lote A · Cacao</h4>
-                  <p>Humedad 68% · 1.200 plantas</p>
-                </div>
-                <div class="map-card warning">
-                  <span class="pill yellow">Atención</span>
-                  <h4>Lote B · Mango</h4>
-                  <p>Humedad 41% · alerta activa</p>
-                </div>
-                <div class="map-card blue">
-                  <span class="pill blue">Fotos</span>
-                  <h4>Lote C · Café</h4>
-                  <p>3 fotos pendientes · diagnóstico</p>
-                </div>
-                <div class="map-card danger">
-                  <span class="pill red">Resiembra</span>
-                  <h4>Lote D · Cacao</h4>
-                  <p>Mortalidad 7% · plan en curso</p>
-                </div>
-                <div class="map-card">
-                  <span class="pill">Vivero</span>
-                  <h4>Zona de plántulas</h4>
-                  <p>Revisión de sombra a las 3:00 p.m.</p>
-                </div>
-                <div class="map-card blue">
-                  <span class="pill blue">Hídrica</span>
-                  <h4>Zona hídrica</h4>
-                  <p>Lluvia ligera · 2 mm</p>
-                </div>
-              </div>
+              <div class="map-grid" id="mapaLotes"></div>
             </div>
           </div>
         </div>
@@ -136,7 +88,7 @@
           <div class="c-card">
             <h3>Clima</h3>
             <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
-              <span style="font-size:28px">⛅</span>
+              <i class="ph ph-cloud-sun" style="font-size:28px;color:var(--olive)"></i>
               <div>
                 <strong style="font-size:20px;display:block" id="homeAverageTemperature2">22°C</strong>
                 <span class="muted" style="font-size:12px" id="homeCondicion">Parcialmente nublado</span>
@@ -171,152 +123,15 @@
           <div class="section-head">
             <div>
               <span class="section-kicker">Mapa operativo</span>
-              <h2>Lotes y árboles</h2>
+              <h2>Lotes de cacao</h2>
               <p class="section-copy">
-                Vista interactiva por lote con estado, humedad, fotos y tareas sugeridas por el agente.
+                Seis lotes muestreados por el Laboratorio de Suelos de la Universidad Nacional.
+                Cada tarjeta cruza el último análisis con lo que anota la gente en la hoja de campo.
               </p>
             </div>
-            <div class="lote-toolbar">
-              <button class="chip active">Todos</button>
-              <button class="chip">Alertas</button>
-              <button class="chip">Fotos</button>
-              <button class="chip">Riego</button>
-            </div>
           </div>
 
-          <div class="lotes-grid">
-            <article class="lote-card">
-              <div class="lote-head">
-                <div>
-                  <span class="pill">Estable</span>
-                  <h3>Lote A · Cacao</h3>
-                </div>
-                <button class="ghost-btn">Abrir historial</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Humedad</small>
-                  <strong>68%</strong>
-                </div>
-                <div>
-                  <small>Fotos</small>
-                  <strong>2 nuevas</strong>
-                </div>
-                <div>
-                  <small>Tareas</small>
-                  <strong>3 hoy</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Salud del lote</span>
-                <div class="progress-bar"><span style="width:78%"></span></div>
-              </div>
-              <p>Revisión de hojas recomendada en la tarde. Sin alertas críticas.</p>
-              <div class="lote-actions">
-                <button class="btn">Crear tarea</button>
-                <button class="btn secondary">Ver mapa</button>
-              </div>
-            </article>
-
-            <article class="lote-card warning">
-              <div class="lote-head">
-                <div>
-                  <span class="pill yellow">Atención</span>
-                  <h3>Lote B · Mango</h3>
-                </div>
-                <button class="ghost-btn">Ver alerta</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Humedad</small>
-                  <strong>41%</strong>
-                </div>
-                <div>
-                  <small>Alertas</small>
-                  <strong>2 activas</strong>
-                </div>
-                <div>
-                  <small>Fotos</small>
-                  <strong>Pendiente</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Riesgo fitosanitario</span>
-                <div class="progress-bar"><span style="width:52%"></span></div>
-              </div>
-              <p>Priorizar revisión manual del suelo y registrar lluvia real antes de las 8:30.</p>
-              <div class="lote-actions">
-                <button class="btn">Solicitar fotos</button>
-                <button class="btn secondary">Abrir trazabilidad</button>
-              </div>
-            </article>
-
-            <article class="lote-card blue">
-              <div class="lote-head">
-                <div>
-                  <span class="pill blue">Revisar</span>
-                  <h3>Lote C · Café</h3>
-                </div>
-                <button class="ghost-btn">Subir fotos</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Humedad</small>
-                  <strong>63%</strong>
-                </div>
-                <div>
-                  <small>Fotos</small>
-                  <strong>3 pendientes</strong>
-                </div>
-                <div>
-                  <small>Equipo</small>
-                  <strong>Daniel L.</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Seguimiento</span>
-                <div class="progress-bar"><span style="width:64%"></span></div>
-              </div>
-              <p>Diagnóstico fitosanitario requiere fotos recientes de hojas y frutos.</p>
-              <div class="lote-actions">
-                <button class="btn">Asignar tarea</button>
-                <button class="btn secondary">Ver registros</button>
-              </div>
-            </article>
-
-            <article class="lote-card danger">
-              <div class="lote-head">
-                <div>
-                  <span class="pill red">Resiembra</span>
-                  <h3>Lote D · Cacao joven</h3>
-                </div>
-                <button class="ghost-btn">Programar tarea</button>
-              </div>
-              <div class="lote-stats">
-                <div>
-                  <small>Mortalidad</small>
-                  <strong>7%</strong>
-                </div>
-                <div>
-                  <small>Insumos</small>
-                  <strong>Listos</strong>
-                </div>
-                <div>
-                  <small>Cuadrilla</small>
-                  <strong>2 personas</strong>
-                </div>
-              </div>
-              <div class="lote-progress">
-                <span>Plan de resiembra</span>
-                <div class="progress-bar"><span style="width:38%"></span></div>
-              </div>
-              <p>Agendar reposición de plantas y registrar causa probable.</p>
-              <div class="lote-actions">
-                <button class="btn">Crear plan</button>
-                <button class="btn secondary">Abrir reporte</button>
-              </div>
-            </article>
-          </div>
+          <div class="lotes-grid" id="lotesGrid"></div>
         </div>
       </section>
 
@@ -327,8 +142,8 @@
               <span class="section-kicker">Hoja de campo</span>
               <h2>Sensores y telemetría</h2>
               <p class="section-copy">
-                Lecturas anotadas a mano en la finca y volcadas a una hoja de cálculo compartida —
-                todavía no hay sensores físicos conectados, pero el tablero lee esa hoja como si lo fueran.
+                Lecturas anotadas a mano en la finca y volcadas a una hoja de cálculo compartida.
+                Todavía no hay sensores físicos conectados, pero el tablero lee esa hoja como si lo fueran.
               </p>
             </div>
             <span class="pill blue" id="sensoresEstadoSync">Sincronizando…</span>
@@ -435,12 +250,46 @@
       <section id="reportes" class="page">
         <div class="c-head">
           <div>
-            <h1>Reportes</h1>
-            <p>Próximamente.</p>
+            <h1>Laboratorio</h1>
+            <p>Análisis de suelo, foliares y catación de la finca.</p>
           </div>
         </div>
+
         <div class="c-card">
-          <p class="muted">Los reportes de campaña (cosecha, insumos, mano de obra) van a vivir acá. Todavía no están conectados.</p>
+          <div class="c-card-head">
+            <h3>Catación</h3>
+            <span class="pill">FEDECACAO · 17 abr 2026</span>
+          </div>
+          <div class="calidad-grid" id="calidadGrid"></div>
+        </div>
+
+        <div class="c-card" style="margin-top:16px">
+          <div class="c-card-head">
+            <h3>Análisis de suelo</h3>
+            <span class="pill">Universidad Nacional · sede Medellín</span>
+          </div>
+          <div class="tabla-scroll">
+            <table class="lab-tabla" id="tablaSuelos"></table>
+          </div>
+          <p class="muted" style="font-size:11.5px;margin-top:10px">
+            pH sin unidad. Materia orgánica y carbono orgánico en %. Aluminio, calcio, magnesio,
+            potasio y CICE en cmol(+)/kg. Fósforo en mg/kg. Un guion significa que el informe no
+            reporta ese valor.
+          </p>
+        </div>
+
+        <div class="c-card" style="margin-top:16px">
+          <div class="c-card-head">
+            <h3>Análisis foliar</h3>
+            <span class="pill">Muestreo octubre 2023</span>
+          </div>
+          <div class="tabla-scroll">
+            <table class="lab-tabla" id="tablaFoliares"></table>
+          </div>
+          <p class="muted" style="font-size:11.5px;margin-top:10px">
+            Nitrógeno, calcio, magnesio, potasio, fósforo y azufre en %. Hierro, manganeso,
+            cobre, zinc y boro en mg/kg. El Mandarino, La Corraleja y La Roca no se han muestreado.
+          </p>
         </div>
       </section>
 
@@ -490,11 +339,12 @@
     <aside class="csb-lia">
       <div class="csb-lia-head">
         <strong>LIA</strong>
-        <span>Asistente inteligente</span>
+        <span>Asistente de la finca</span>
       </div>
 
       <div class="csb-lia-insight" id="liaInsight">
-        El índice de salud mejoró 5 puntos en la última semana. Buen desarrollo en los lotes del norte.
+        El lote El Huevo bajó a pH 4,9 en el análisis de 2023 y perdió capacidad de intercambio.
+        Es el primero que conviene corregir.
       </div>
 
       <div>
@@ -506,7 +356,7 @@
 
       <div class="csb-lia-chat">
         <input id="chatInput" placeholder="Preguntá a LIA..." />
-        <button type="button" id="chatSend">➤</button>
+        <button type="button" id="chatSend" aria-label="Enviar"><i class="ph ph-paper-plane-right"></i></button>
       </div>
     </aside>
   </div>

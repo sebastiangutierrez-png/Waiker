@@ -2,6 +2,7 @@ import { enviarMensaje, hayConexion } from "./api.js";
 import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR } from "./data.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
 import { iniciarSincronizacionClima } from "./climaApi.js";
+import { renderFinca, renderLotes, renderMapaLotes } from "./finca.js";
 
 const navButtons = document.querySelectorAll(".csb-nav [data-page]");
 const pages = document.querySelectorAll(".page");
@@ -336,22 +337,6 @@ function renderTareas(containerId, limite) {
     </div>`).join("");
 }
 
-function renderSaludTrend() {
-  const svg = document.getElementById("saludTrend");
-  if (!svg) return;
-  const serie = [64, 66, 68, 67, 70, 73, 75, 74, 76, 77, 78, 78];
-  const w = 300, h = 90, pad = 6;
-  const max = Math.max(...serie), min = Math.min(...serie), span = (max - min) || 1;
-  const puntos = serie.map((v, i) => {
-    const x = pad + (i / (serie.length - 1)) * (w - pad * 2);
-    const y = h - pad - ((v - min) / span) * (h - pad * 2);
-    return `${x.toFixed(1)},${y.toFixed(1)}`;
-  }).join(" ");
-  svg.innerHTML = `<polyline points="${puntos}" fill="none" stroke="var(--olive)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`;
-}
-
-// ═══════════ Asistente: propuestas reales + registro de decisiones ═══════════
-
 function renderAcciones() {
   const cont = document.querySelector(".agent-actions");
   if (!cont) return;
@@ -398,11 +383,13 @@ renderResumenSensores();
 renderSensoresPagina();
 renderTareas("resumenTareas", 4);
 renderTareas("taskListFull", null);
-renderSaludTrend();
+renderFinca();
 hayConexion().then(actualizarEstadoAgente);
 iniciarSincronizacionSensores(SENSORES, () => {
   renderResumenSensores();
   renderSensoresPagina();
+  renderLotes();
+  renderMapaLotes();
   marcarSincronizado();
 });
 iniciarSincronizacionClima(renderPronostico);

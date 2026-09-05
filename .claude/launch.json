@@ -4,8 +4,9 @@
     {
       "name": "waiker-dev",
       "runtimeExecutable": "python",
-      "runtimeArgs": ["-m", "http.server", "8935", "--directory", "src"],
-      "port": 8935
+      "runtimeArgs": ["-m", "http.server", "8936", "--directory", "src"],
+      "port": 8936,
+      "autoPort": false
     }
   ]
 }
