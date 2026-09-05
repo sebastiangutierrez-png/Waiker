@@ -2361,6 +2361,51 @@ h1 span {
   overflow-y: auto;
 }
 
+/* LIA sidebar polish */
+.csb-lia { background: linear-gradient(180deg, #fffdf7 0%, #f8f4e9 100%); padding: 22px 18px 18px; gap: 18px; }
+.csb-lia-head { display: grid; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--line); }
+.csb-lia-identity { display: flex; align-items: center; gap: 10px; }
+.csb-lia-avatar { width: 38px; height: 38px; display: grid; place-items: center; flex: none; border-radius: 13px; color: #fff; background: var(--olive); box-shadow: 0 7px 16px rgba(91,105,20,.2); }
+.csb-lia-avatar i { font-size: 21px; }
+.csb-lia-head strong { font-size: 16px; letter-spacing: -.01em; }
+.csb-lia-head span { display: block; }
+.csb-lia-connection { display: inline-flex !important; align-items: center; gap: 7px; width: fit-content; padding: 5px 9px; border: 1px solid rgba(102,122,35,.17); border-radius: 999px; background: rgba(225,235,202,.52); color: var(--olive-dark); font-size: 10px !important; font-weight: 800; }
+.csb-lia-connection-dot { width: 7px; height: 7px; border-radius: 50%; background: #7fa23a; box-shadow: 0 0 0 3px rgba(127,162,58,.14); }
+.csb-lia-connection-dot.is-thinking { background: var(--gold); box-shadow: 0 0 0 3px rgba(190,145,48,.14); }
+.csb-lia-connection-dot.is-error { background: var(--danger); box-shadow: 0 0 0 3px rgba(175,86,52,.14); }
+.csb-lia-insight { min-height: 104px; display: flex; flex-direction: column; justify-content: center; gap: 9px; background: linear-gradient(135deg, #e8efdc, #f2f4e1); border: 1px solid rgba(104,129,48,.13); border-radius: 16px; padding: 15px; }
+.csb-lia-insight-label { display: flex !important; align-items: center; gap: 6px; color: var(--olive); font-size: 9.5px !important; font-weight: 900; letter-spacing: .09em; text-transform: uppercase; }
+.csb-lia-insight-label i { font-size: 13px; }
+.csb-lia-sugerencias-titulo { display: flex; align-items: center; justify-content: space-between; margin-bottom: 9px; }
+.csb-lia-count { min-width: 20px; padding: 3px 6px; border-radius: 999px; background: #eee8d7; color: var(--olive-dark); text-align: center; font-size: 10px !important; }
+.csb-lia-sugerencias { gap: 8px; }
+.csb-sug { width: 100%; display: flex; align-items: center; gap: 9px; border: 1px solid rgba(70,78,24,.12); background: rgba(255,255,255,.62); color: inherit; text-align: left; cursor: pointer; transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; }
+.csb-sug:hover { transform: translateY(-1px); border-color: rgba(97,117,33,.32); box-shadow: 0 7px 16px rgba(61,70,19,.07); }
+.csb-sug:focus-visible, .csb-lia-chat input:focus-visible, .csb-lia-chat button:focus-visible { outline: 3px solid rgba(145,161,60,.35); outline-offset: 2px; }
+.csb-sug-icon { width: 29px; height: 29px; border-radius: 10px; display: grid; place-items: center; flex: none; color: #fff; }
+.csb-sug-icon i { font-size: 15px; }
+.csb-sug strong { font-size: 11.5px; line-height: 1.35; }
+.csb-sug em { font-size: 9.5px; margin-top: 3px; }
+.csb-sug-arrow { width: 14px; margin-left: auto; color: var(--muted); opacity: .7; flex: none; font-size: 14px; }
+.csb-sug-empty { cursor: default; }
+.csb-sug-empty:hover { transform: none; box-shadow: none; }
+.csb-lia-log { max-height: 138px; gap: 7px; padding-top: 2px; }
+.lia-log-entry { display: grid; gap: 3px; padding: 8px 9px; border-left: 2px solid #d7dec2; background: rgba(255,255,255,.45); border-radius: 0 9px 9px 0; font-size: 10.5px; line-height: 1.4; }
+.lia-log-role { color: var(--olive); font-size: 9px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.csb-lia-chat { gap: 7px; padding-top: 12px; border-top: 1px solid var(--line); align-items: center; }
+.csb-lia-chat input { flex: 1 1 auto; width: 0; border-radius: 13px; padding: 11px 12px; background: #fff; }
+.csb-lia-chat button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; background: var(--olive); box-shadow: 0 7px 14px rgba(91,105,20,.18); transition: transform .18s ease, background .18s ease; }
+.csb-lia-chat button:hover:not(:disabled) { transform: translateY(-1px); background: var(--olive-dark); }
+.csb-lia-chat button:disabled { opacity: .72; cursor: wait; }
+.csb-lia-chat button i { font-size: 18px; }
+.lia-spin { animation: lia-spin .9s linear infinite; }
+.csb-lia-loading-lines { display: flex; gap: 4px; }
+.csb-lia-loading-lines i { width: 5px; height: 5px; border-radius: 50%; background: var(--olive); animation: lia-pulse 1s ease-in-out infinite; }
+.csb-lia-loading-lines i:nth-child(2) { animation-delay: .15s; } .csb-lia-loading-lines i:nth-child(3) { animation-delay: .3s; }
+@keyframes lia-spin { to { transform: rotate(360deg); } }
+@keyframes lia-pulse { 0%, 100% { opacity: .3; transform: translateY(0); } 50% { opacity: 1; transform: translateY(-2px); } }
+@media (prefers-reduced-motion: reduce) { .lia-spin, .csb-sug, .csb-lia-chat button { animation: none; transition: none; } }
+
 @media (max-width: 1180px) {
   .concept-shell { grid-template-columns: 210px 1fr; }
   .csb-lia { display: none; }

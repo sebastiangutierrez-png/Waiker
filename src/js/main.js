@@ -239,36 +239,61 @@ function actualizarEstadoAgente(conectado) {
 // ═══════════ panel LIA (sidebar derecho) ═══════════
 
 const liaHistorial = [];
+let liaOcupado = false;
+
+function iconoSugerencia(tono) {
+  return tono === "clay" ? "ph-warning" : tono === "leaf" ? "ph-calendar-check" : "ph-cloud-rain";
+}
 
 async function preguntarLia(prompt) {
   const insight = document.getElementById("liaInsight");
   const log = document.getElementById("liaLog");
-  if (!insight) return;
+  const input = document.getElementById("chatInput");
+  const send = document.getElementById("chatSend");
+  const connection = document.getElementById("liaConnection");
+  if (!insight || liaOcupado) return;
 
-  insight.textContent = "Consultando…";
+  liaOcupado = true;
+  insight.innerHTML = '<span class="csb-lia-insight-label"><i class="ph ph-spinner lia-spin"></i> LIA está revisando</span><span class="csb-lia-loading-lines"><i></i><i></i><i></i></span>';
+  if (input) input.disabled = true;
+  if (send) {
+    send.disabled = true;
+    send.innerHTML = '<i class="ph ph-spinner lia-spin"></i>';
+  }
+  if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot is-thinking"></i><span>Procesando pregunta…</span>';
   liaHistorial.push({ rol: "yo", texto: prompt });
 
   const agregarLog = (texto) => {
     if (!log) return;
     const fila = document.createElement("div");
-    fila.textContent = texto;
+    fila.className = "lia-log-entry";
+    fila.innerHTML = texto;
     log.prepend(fila);
   };
 
-  agregarLog(`Vos: ${prompt}`);
+  agregarLog(`<span class="lia-log-role">Tú</span><span>${escapeHtml(prompt)}</span>`);
 
   try {
     const reply = await enviarMensaje(liaHistorial, {});
     liaHistorial.push({ rol: "lia", texto: reply });
     insight.innerHTML = renderMarkdown(reply);
-    agregarLog(`LIA: ${reply}`);
+    agregarLog(`<span class="lia-log-role">LIA</span><span>${escapeHtml(reply)}</span>`);
     actualizarEstadoAgente(true);
+    if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot"></i><span>Conectada al agente</span>';
   } catch (error) {
     const fallback = getReply(prompt);
     liaHistorial.push({ rol: "lia", texto: fallback });
     insight.innerHTML = renderMarkdown(fallback);
-    agregarLog(`LIA: ${fallback}`);
+    agregarLog(`<span class="lia-log-role">Modo demo</span><span>${escapeHtml(fallback)}</span>`);
     actualizarEstadoAgente(false);
+    if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot is-error"></i><span>Respuesta de muestra</span>';
+  } finally {
+    liaOcupado = false;
+    if (input) input.disabled = false;
+    if (send) {
+      send.disabled = false;
+      send.innerHTML = '<i class="ph ph-arrow-up"></i>';
+    }
   }
 }
 
@@ -276,14 +301,20 @@ function enviarPreguntaLia() {
   const input = document.getElementById("chatInput");
   if (!input) return;
   const texto = input.value.trim();
-  if (!texto) return;
+  if (!texto || liaOcupado) return;
   input.value = "";
   preguntarLia(texto);
 }
 
-document.getElementById("chatSend")?.addEventListener("click", enviarPreguntaLia);
+document.getElementById("liaChatForm")?.addEventListener("submit", (event) => {
+  event.preventDefault();
+  enviarPreguntaLia();
+});
 document.getElementById("chatInput")?.addEventListener("keydown", (event) => {
-  if (event.key === "Enter") enviarPreguntaLia();
+  if (event.key === "Enter") {
+    event.preventDefault();
+    enviarPreguntaLia();
+  }
 });
 
 function renderSugerencias() {
@@ -297,20 +328,32 @@ function renderSugerencias() {
   };
 
   const pendientes = acciones().filter((h) => modoDe(h) === "pendiente");
+  const contador = document.getElementById("liaSuggestionCount");
+  if (contador) contador.textContent = pendientes.length;
   cont.innerHTML = pendientes.length
     ? pendientes.map((h) => {
       const [texto, color] = prioridad[h.tono] || prioridad.wheat;
       return `
-        <div class="csb-sug">
-          <div class="csb-sug-icon" style="background:${color}">●</div>
+        <button type="button" class="csb-sug" data-lia-prompt="${escapeHtml(h.lead)}">
+          <span class="csb-sug-icon" style="background:${color}"><i class="ph ${iconoSugerencia(h.tono)}"></i></span>
           <div>
             <strong>${escapeHtml(h.lead)}</strong>
             <em style="color:${color}">${texto}</em>
           </div>
-        </div>`;
+          <i class="ph ph-arrow-up-right csb-sug-arrow"></i>
+        </button>`;
     }).join("")
-    : `<div class="csb-sug"><div class="csb-sug-icon" style="background:var(--olive)">✓</div><div><strong>Sin sugerencias pendientes.</strong></div></div>`;
+    : `<div class="csb-sug csb-sug-empty"><span class="csb-sug-icon" style="background:var(--olive)"><i class="ph ph-check"></i></span><div><strong>Sin sugerencias pendientes.</strong><em>Todo está al día</em></div></div>`;
 }
+
+document.getElementById("liaSugerencias")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-lia-prompt]");
+  if (button) {
+    const input = document.getElementById("chatInput");
+    if (input) input.value = button.dataset.liaPrompt;
+    enviarPreguntaLia();
+  }
+});
 
 // ═══════════ Resumen: listas de sensores y tareas ═══════════
 

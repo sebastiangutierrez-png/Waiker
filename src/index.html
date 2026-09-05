@@ -338,26 +338,30 @@
 
     <aside class="csb-lia">
       <div class="csb-lia-head">
-        <strong>LIA</strong>
-        <span>Asistente de la finca</span>
+        <div class="csb-lia-identity">
+          <span class="csb-lia-avatar"><i class="ph ph-sparkle"></i></span>
+          <div><strong>LIA</strong><span>Asistente de la finca</span></div>
+        </div>
+        <span class="csb-lia-connection" id="liaConnection"><i class="csb-lia-connection-dot"></i><span>Lista para ayudarte</span></span>
       </div>
 
-      <div class="csb-lia-insight" id="liaInsight">
+      <div class="csb-lia-insight" id="liaInsight" aria-live="polite">
+        <span class="csb-lia-insight-label"><i class="ph ph-sparkle"></i> Lectura rápida</span>
         El lote El Huevo bajó a pH 4,9 en el análisis de 2023 y perdió capacidad de intercambio.
         Es el primero que conviene corregir.
       </div>
 
       <div>
-        <div class="csb-lia-sugerencias-titulo">Sugerencias</div>
+        <div class="csb-lia-sugerencias-titulo"><span>Sugerencias para hoy</span><span class="csb-lia-count" id="liaSuggestionCount">0</span></div>
         <div class="csb-lia-sugerencias" id="liaSugerencias"></div>
       </div>
 
-      <div class="csb-lia-log" id="liaLog"></div>
+      <div class="csb-lia-log" id="liaLog" aria-live="polite" aria-label="Actividad de conversación"></div>
 
-      <div class="csb-lia-chat">
-        <input id="chatInput" placeholder="Preguntá a LIA..." />
-        <button type="button" id="chatSend" aria-label="Enviar"><i class="ph ph-paper-plane-right"></i></button>
-      </div>
+      <form class="csb-lia-chat" id="liaChatForm">
+        <input id="chatInput" autocomplete="off" aria-label="Pregunta a LIA" placeholder="Escribe una pregunta…" />
+        <button type="submit" id="chatSend" aria-label="Enviar pregunta"><i class="ph ph-arrow-up"></i></button>
+      </form>
     </aside>
   </div>
 </body>
