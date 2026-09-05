@@ -245,17 +245,17 @@ export const CLIMA = [
 export const HILO_DEMO = [
   { tipo: "nota", hora: "05:30", texto: "LIA revisó los 6 lotes y las lecturas de la hoja de campo." },
   {
-    tipo: "accion", modo: "hecho", tag: "suelo", hora: "05:58", tono: "clay", confianza: 94,
-    lead: "Puse el encalado de El Huevo de primero en el plan.",
+    tipo: "accion", modo: "pendiente", tag: "suelo", hora: "05:58", tono: "clay", confianza: 94,
+    lead: "Revisar la necesidad de encalado en El Huevo.",
     texto: "L3 bajó de pH 5,0 a 4,9 entre 2022 y 2023, y la CICE cayó de 4,86 a 2,81. " +
       "Es el único lote de la finca por debajo de pH 5,0.",
-    impacto: "2 tareas reordenadas", chips: [{ kind: "lote", id: "L3" }]
+    impacto: "Requiere validación actual antes de cualquier aplicación", chips: [{ kind: "lote", id: "L3" }]
   },
   {
-    tipo: "accion", modo: "hecho", tag: "aviso", hora: "05:59", tono: "leaf", confianza: 99,
-    lead: "Avisé a la cuadrilla de la entrada.",
-    texto: "Le escribí a los que están activos hoy: entrada 6:00 en El Huevo, cal dolomita lista en bodega.",
-    impacto: "6 avisados"
+    tipo: "accion", modo: "pendiente", tag: "aviso", hora: "05:59", tono: "leaf", confianza: 99,
+    lead: "Confirmar el plan de entrada de la cuadrilla.",
+    texto: "Antes de avisar a la cuadrilla, confirmar el lote, la hora y la disponibilidad de insumos con la persona responsable.",
+    impacto: "Requiere confirmación humana"
   },
   {
     tipo: "accion", modo: "pendiente", tag: "calidad", hora: "06:12", tono: "clay", confianza: 88,
@@ -272,10 +272,10 @@ export const HILO_DEMO = [
     impacto: "una tarde de revisión en el beneficiadero"
   },
   {
-    tipo: "accion", modo: "programado", tag: "nutrición", hora: "06:03", tono: "wheat", confianza: 76,
-    lead: "Agendé muestreo foliar para los lotes que faltan.",
+    tipo: "accion", modo: "pendiente", tag: "nutrición", hora: "06:03", tono: "wheat", confianza: 76,
+    lead: "Evaluar muestreo foliar para los lotes sin cobertura.",
     texto: "Sólo L1, L2 y L3 tienen foliar de 2023. El Mandarino, La Corraleja y La Roca nunca se han muestreado.",
-    impacto: "3 lotes sin cubrir"
+    impacto: "L4, L6 y L7 sin análisis foliar histórico"
   }
 ];
 

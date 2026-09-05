@@ -1975,7 +1975,30 @@ h1 span {
   display: flex;
   flex-direction: column;
   gap: 26px;
+  isolation: isolate;
+  overflow-x: hidden;
 }
+
+/* ── Propuestas: muestras seguras, sin ejecución ── */
+.csb-nav-badge { margin-left: auto; min-width: 20px; padding: 2px 6px; border-radius: 999px; background: rgba(255,255,255,.2); color: var(--csb-fg); font-size: 10px; font-weight: 900; text-align: center; }
+.proposal-summary-note { margin: 8px 0 10px; font-size: 11.5px; line-height: 1.45; }
+.proposal-summary-list { display: grid; gap: 8px; }
+.proposal-demo-notice { display: flex; align-items: flex-start; gap: 9px; margin: -4px 0 16px; padding: 11px 13px; border: 1px solid #dfcf9e; border-radius: 12px; background: #fbf4df; color: #705b23; font-size: 12px; line-height: 1.45; }
+.proposal-demo-notice i { font-size: 17px; flex: none; }
+.proposal-card { border: 1px solid var(--line); border-radius: 16px; background: rgba(255,255,255,.55); overflow: hidden; }
+.proposal-card-main { display: grid; grid-template-columns: 36px 1fr auto; width: 100%; gap: 11px; align-items: center; padding: 13px; border: 0; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.proposal-card-main:hover { background: rgba(255,255,255,.5); }
+.proposal-category-icon { width: 36px; height: 36px; display: grid; place-items: center; border-radius: 11px; background: var(--sage-2); color: var(--olive-dark); font-size: 18px; flex: none; }
+.proposal-card-copy { display: grid; gap: 4px; min-width: 0; }
+.proposal-card-copy strong { color: var(--forest); font-size: 13px; line-height: 1.35; }
+.proposal-card-copy > span:last-child { color: var(--muted); font-size: 11.5px; }
+.proposal-card-meta { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 10.5px; text-transform: capitalize; }
+.proposal-importance { display: inline-flex; padding: 2px 6px; border-radius: 999px; font-size: 9.5px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em; }
+.proposal-importance.high { background: #f6ded4; color: #a94828; }.proposal-importance.medium { background: #f6eccb; color: #876516; }.proposal-importance.low { background: #e1edd8; color: #4f7131; }
+.proposal-card-arrow { color: var(--muted); font-size: 15px; }.proposal-card-actions { display: flex; gap: 8px; padding: 0 13px 13px 60px; }.proposal-card-actions .btn { padding: 7px 11px; font-size: 11px; box-shadow: none; }
+.proposal-card-compact { border-radius: 12px; }.proposal-card-compact .proposal-card-main { padding: 10px; grid-template-columns: 31px 1fr auto; }.proposal-card-compact .proposal-category-icon { width: 31px; height: 31px; border-radius: 9px; font-size: 15px; }.proposal-card-compact .proposal-card-copy strong { font-size: 11.5px; }
+.proposal-detail { margin: 0 0 16px; padding: 16px; border: 1px solid #d7dfbd; border-radius: 16px; background: #f7faed; }.proposal-detail-head { display: grid; grid-template-columns: auto 1fr auto; gap: 12px; align-items: start; }.proposal-detail h2 { margin: 5px 0 7px; color: var(--forest); font-size: 18px; }.proposal-detail p { margin: 0; color: var(--muted); font-size: 12.5px; line-height: 1.55; }.proposal-close { border: 0; background: transparent; color: var(--muted); font-size: 19px; cursor: pointer; }.proposal-facts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 15px 0 0; }.proposal-facts div { padding: 10px; border-radius: 10px; background: rgba(255,255,255,.55); }.proposal-facts dt { color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }.proposal-facts dd { margin: 4px 0 0; color: var(--text); font-size: 12px; line-height: 1.4; }.proposal-decision { display: inline-flex; align-items: center; font-size: 11px; font-weight: 800; }.proposal-decision.aprobada { color: var(--olive-dark); }.proposal-decision.descartada { color: var(--muted); }
+@media (max-width: 720px) { .proposal-facts { grid-template-columns: 1fr; }.proposal-card-actions { padding-left: 13px; flex-wrap: wrap; } }
 
 .csb-logo {
   display: flex;
@@ -2392,6 +2415,15 @@ h1 span {
 .csb-lia-log { max-height: 138px; gap: 7px; padding-top: 2px; }
 .lia-log-entry { display: grid; gap: 3px; padding: 8px 9px; border-left: 2px solid #d7dec2; background: rgba(255,255,255,.45); border-radius: 0 9px 9px 0; font-size: 10.5px; line-height: 1.4; }
 .lia-log-role { color: var(--olive); font-size: 9px; font-weight: 900; letter-spacing: .06em; text-transform: uppercase; }
+.csb-lia { min-height: 0; overflow: hidden; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr) minmax(0, 138px) auto auto; gap: 12px; }
+.csb-lia-sugerencias { min-height: 0; overflow-y: auto; align-content: start; }
+.csb-lia-avatar { overflow: hidden; }
+.csb-lia-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; }
+.csb-lia-insight { max-height: 154px; overflow: hidden; }
+.csb-lia-log { flex: 0 1 138px; min-height: 0; overflow-y: auto; }
+.csb-lia-full { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex: none; color: var(--olive-dark); font-size: 10.5px; font-weight: 800; text-decoration: none; }
+.csb-lia-full:hover { color: var(--olive); text-decoration: underline; }
+.csb-lia-full i { font-size: 14px; }
 .csb-lia-chat { gap: 7px; padding-top: 12px; border-top: 1px solid var(--line); align-items: center; }
 .csb-lia-chat input { flex: 1 1 auto; width: 0; border-radius: 13px; padding: 11px 12px; background: #fff; }
 .csb-lia-chat button { width: 40px; height: 40px; display: grid; place-items: center; border-radius: 13px; background: var(--olive); box-shadow: 0 7px 14px rgba(91,105,20,.18); transition: transform .18s ease, background .18s ease; }
@@ -2453,7 +2485,7 @@ h1 span {
    (sticky) termine flotando sobre los mensajes en pantallas cortas. */
 .pagina-agente .concept-shell { height: 100vh; }
 .pagina-agente .csb-main {
-  background: var(--va-bg); height: 100vh; overflow: hidden;
+  background: var(--va-bg); height: 100vh; min-height: 0; overflow: hidden;
   display: flex; flex-direction: column;
 }
 
@@ -2465,7 +2497,7 @@ h1 span {
 .pagina-agente .aviso i { width: 9px; height: 9px; border-radius: 50%; flex: none; display: block; }
 
 .pagina-agente .vista-chat {
-  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow: hidden;
 }
 
 .pagina-agente .chat-cima,
@@ -2508,13 +2540,14 @@ h1 span {
 .pagina-agente .datos-sensores-puntos i { width: 8px; height: 8px; border-radius: 50%; display: block; }
 .pagina-agente .datos-sensores-resumen { margin-left: auto; font-family: "DM Mono", monospace; font-size: 11.5px; color: var(--va-tinta-dim); }
 
-.pagina-agente .chat-hilo { display: flex; flex-direction: column; gap: 22px; margin-top: 22px; padding-bottom: 20px; }
+.pagina-agente .chat-hilo { display: flex; flex: 1; min-height: 0; flex-direction: column; gap: 22px; margin-top: 22px; padding: 0 2px 20px; overflow-y: auto; }
 
 .pagina-agente .hilo-msg { display: flex; align-items: flex-start; gap: 11px; border-radius: 14px; }
 .pagina-agente .hilo-avatar {
   width: 26px; height: 26px; border-radius: 50%; background: var(--va-acento); color: #fdfaf3;
   display: grid; place-items: center; font-family: "DM Mono", monospace; font-size: 11px; font-weight: 700; flex: none;
 }
+.pagina-agente .hilo-avatar img { width: 100%; height: 100%; display: block; object-fit: cover; border-radius: inherit; }
 .pagina-agente .hilo-burbuja {
   flex: 1; min-width: 0; padding: 12px 15px; border-radius: 14px; border: 1px solid var(--va-linea); background: var(--va-panel);
 }
@@ -2547,7 +2580,11 @@ h1 span {
   flex: none; padding: 14px 0 4px; background: var(--va-bg); max-width: 756px; margin: 0 auto; width: 100%;
 }
 
-.pagina-agente .chat-atajos { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
+.pagina-agente .chat-atajos { display: flex; flex-wrap: nowrap; gap: 7px; max-width: 100%; margin-bottom: 10px; overflow-x: auto; padding: 1px 2px 4px; scrollbar-width: none; }
+.pagina-agente .chat-atajos::-webkit-scrollbar { display: none; }
+.pagina-agente .chat-atajos .va-pastilla { flex: none; white-space: nowrap; }
+.pagina-agente .chat-atajos-compact { gap: 5px; margin-bottom: 7px; opacity: .78; }
+.pagina-agente .chat-atajos-compact .va-pastilla { padding: 6px 9px; font-size: 10.5px; }
 
 .pagina-agente .chat-form {
   border: 1px solid var(--va-linea); border-radius: 14px; background: var(--va-panel); box-shadow: var(--va-sombra-form);

@@ -178,6 +178,37 @@ async function llamarPuente(env, mensaje, identidad) {
   }
 }
 
+/** Proxy JSON estrecho para el registro compartido de propuestas. */
+async function llamarPuenteJson(env, ruta, metodo, cuerpo, actor) {
+  const base = (env.BRIDGE_URL || "https://api.agromyss.com/agent").replace(/\/+$/, "");
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+
+  try {
+    const res = await fetch(`${base}${ruta}`, {
+      method: metodo,
+      signal: ctrl.signal,
+      headers: {
+        authorization: `Bearer ${env.BRIDGE_TOKEN}`,
+        "x-agromyss-actor": actor,
+        ...(cuerpo ? { "content-type": "application/json" } : {})
+      },
+      ...(cuerpo ? { body: JSON.stringify(cuerpo) } : {})
+    });
+    const datos = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.error("propuestas", res.status, datos?.error || "respuesta no válida");
+      return json(datos?.error ? { error: datos.error, propuesta: datos.propuesta } : { error: "No se pudo actualizar la propuesta." }, res.status);
+    }
+    return json(datos);
+  } catch (err) {
+    if (err.name === "AbortError") return error("El registro de propuestas tardó demasiado.", 504);
+    throw err;
+  } finally {
+    clearTimeout(t);
+  }
+}
+
 /** Lee y valida el cuerpo JSON de la petición. */
 async function leerJson(request) {
   const bruto = await request.text();
@@ -221,6 +252,20 @@ async function manejarChat(request, env) {
   return json({ respuesta });
 }
 
+async function manejarPropuestas(request, env) {
+  const email = await verificarAccess(request, env);
+  return llamarPuenteJson(env, "/propuestas", "GET", null, email || "web-anon");
+}
+
+async function manejarDecisionPropuesta(request, env) {
+  const { id, decision } = await leerJson(request);
+  if (typeof id !== "string" || !["aprobada", "descartada"].includes(decision)) {
+    return error("Decisión inválida.", 400);
+  }
+  const email = await verificarAccess(request, env);
+  return llamarPuenteJson(env, "/propuestas/decision", "POST", { id, decision }, email || "web-anon");
+}
+
 // ── enrutador ────────────────────────────────────────────────
 
 export default {
@@ -251,9 +296,16 @@ export default {
         return await manejarChat(request, env);
       }
 
-      // Las propuestas del agente (/api/propuestas) todavía no están
-      // conectadas: quedan pendientes de sincronizar con sensores reales.
-      // El cliente ya cae a datos de muestra si esta ruta no existe.
+      if (ruta === "/api/propuestas") {
+        if (request.method !== "GET") return error("Usa GET.", 405);
+        return await manejarPropuestas(request, env);
+      }
+
+      if (ruta === "/api/propuestas/decision") {
+        if (request.method !== "POST") return error("Usa POST.", 405);
+        return await manejarDecisionPropuesta(request, env);
+      }
+
       return error("Ruta no encontrada.", 404);
     } catch (err) {
       console.error("api", err?.stack || err);

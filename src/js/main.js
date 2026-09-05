@@ -1,4 +1,4 @@
-import { enviarMensaje, hayConexion } from "./api.js";
+import { enviarMensaje, hayConexion, obtenerPropuestas, registrarDecision } from "./api.js";
 import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR } from "./data.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
 import { iniciarSincronizacionClima } from "./climaApi.js";
@@ -18,6 +18,8 @@ const pages = document.querySelectorAll(".page");
  */
 let hilo = [];
 const decisiones = {};
+let propuestaSeleccionada = null;
+let origenPropuestas = "muestra";
 
 function cargarHilo() {
   hilo = HILO_DEMO.map((h, i) => ({ ...h, ancla: "acc-" + i }));
@@ -31,13 +33,65 @@ function modoDe(h) {
   return decisiones[h.ancla] || h.modo;
 }
 
-function decidir(ancla, valor) {
+async function decidir(ancla, valor) {
+  if (origenPropuestas === "api") {
+    try {
+      await registrarDecision(ancla, valor);
+      await sincronizarPropuestas();
+    } catch (err) {
+      console.error("No se pudo registrar la decisión de la propuesta.", err);
+      const aviso = document.querySelector(".proposal-demo-notice");
+      if (aviso) aviso.innerHTML = '<i class="ph ph-warning"></i><span>No se pudo guardar la decisión. La propuesta no fue modificada.</span>';
+    }
+    return;
+  }
   decisiones[ancla] = valor;
   renderAcciones();
   renderTimeline();
   renderSugerencias();
+  renderResumenPropuestas();
+  renderDetallePropuesta();
 }
 window.decidir = decidir;
+
+function abrirPropuesta(ancla) {
+  propuestaSeleccionada = ancla;
+  openPage("propuestas");
+  renderDetallePropuesta();
+}
+window.abrirPropuesta = abrirPropuesta;
+
+function tonoDeImportancia(importancia) {
+  return importancia === "high" ? "clay" : importancia === "medium" ? "wheat" : "leaf";
+}
+
+function modoDeEstado(estado) {
+  return estado === "pending_approval" ? "pendiente" : estado === "approved" ? "aprobada" : estado === "rejected" ? "descartada" : "hecho";
+}
+
+async function sincronizarPropuestas() {
+  try {
+    const propuestas = await obtenerPropuestas();
+    if (!propuestas.length) return;
+    origenPropuestas = "api";
+    hilo = propuestas.map((p) => ({
+      tipo: "accion", ancla: p.id, modo: modoDeEstado(p.estado), tag: p.categoria || "revisión",
+      tono: tonoDeImportancia(p.importancia), lead: p.titulo, texto: p.descripcion || p.motivo || "Sin descripción.",
+      impacto: p.faltantes || p.resultado || "Requiere revisión humana", chips: p.lote ? [{ kind: "lote", id: p.lote }] : []
+    }));
+    renderAcciones();
+    renderTimeline();
+    renderSugerencias();
+    renderResumenPropuestas();
+    renderDetallePropuesta();
+    const aviso = document.querySelector(".proposal-demo-notice");
+    if (aviso) aviso.innerHTML = '<i class="ph ph-link"></i><span>Propuestas sincronizadas con Waykao. Aprobar o descartar actualiza el registro compartido; no ejecuta trabajo de campo.</span>';
+  } catch (err) {
+    // La muestra local permite explorar el diseño sin que un fallo temporal
+    // de conectividad se confunda con una decisión real.
+    console.warn("Propuestas remotas no disponibles; se muestra la muestra local.", err);
+  }
+}
 
 navButtons.forEach((button) => {
   button.addEventListener("click", () => {
@@ -238,8 +292,38 @@ function actualizarEstadoAgente(conectado) {
 
 // ═══════════ panel LIA (sidebar derecho) ═══════════
 
-const liaHistorial = [];
+const CHAT_STORAGE_KEY = "agromyss-lia-conversation";
+const MAX_SIDEBAR_CHARS = 180;
+const liaHistorial = cargarConversacion();
 let liaOcupado = false;
+
+function cargarConversacion() {
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "[]");
+    return Array.isArray(guardada) ? guardada.filter((m) => m && (m.rol === "yo" || m.rol === "lia" || m.rol === "error") && typeof m.texto === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function guardarConversacion() {
+  try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(liaHistorial.slice(-40))); } catch { /* almacenamiento opcional */ }
+}
+
+function textoCorto(texto, limite = MAX_SIDEBAR_CHARS) {
+  const limpio = String(texto || "").replace(/\s+/g, " ").trim();
+  return limpio.length > limite ? `${limpio.slice(0, limite).trimEnd()}…` : limpio;
+}
+
+function renderSidebarLog() {
+  const log = document.getElementById("liaLog");
+  if (!log) return;
+  log.innerHTML = liaHistorial.slice(-4).reverse().map((m) => `
+    <div class="lia-log-entry">
+      <span class="lia-log-role">${m.rol === "yo" ? "Tú" : m.rol === "error" ? "Modo demo" : "LIA"}</span>
+      <span title="${escapeHtml(m.texto)}">${escapeHtml(textoCorto(m.texto))}</span>
+    </div>`).join("");
+}
 
 function iconoSugerencia(tono) {
   return tono === "clay" ? "ph-warning" : tono === "leaf" ? "ph-calendar-check" : "ph-cloud-rain";
@@ -262,33 +346,28 @@ async function preguntarLia(prompt) {
   }
   if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot is-thinking"></i><span>Procesando pregunta…</span>';
   liaHistorial.push({ rol: "yo", texto: prompt });
-
-  const agregarLog = (texto) => {
-    if (!log) return;
-    const fila = document.createElement("div");
-    fila.className = "lia-log-entry";
-    fila.innerHTML = texto;
-    log.prepend(fila);
-  };
-
-  agregarLog(`<span class="lia-log-role">Tú</span><span>${escapeHtml(prompt)}</span>`);
+  guardarConversacion();
+  renderSidebarLog();
 
   try {
     const reply = await enviarMensaje(liaHistorial, {});
     liaHistorial.push({ rol: "lia", texto: reply });
-    insight.innerHTML = renderMarkdown(reply);
-    agregarLog(`<span class="lia-log-role">LIA</span><span>${escapeHtml(reply)}</span>`);
+    guardarConversacion();
+    insight.innerHTML = `<span class="csb-lia-insight-label"><i class="ph ph-sparkle"></i> Respuesta de LIA</span><span>${escapeHtml(textoCorto(reply))}</span>`;
+    renderSidebarLog();
     actualizarEstadoAgente(true);
     if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot"></i><span>Conectada al agente</span>';
   } catch (error) {
     const fallback = getReply(prompt);
     liaHistorial.push({ rol: "lia", texto: fallback });
-    insight.innerHTML = renderMarkdown(fallback);
-    agregarLog(`<span class="lia-log-role">Modo demo</span><span>${escapeHtml(fallback)}</span>`);
+    guardarConversacion();
+    insight.innerHTML = `<span class="csb-lia-insight-label"><i class="ph ph-sparkle"></i> Respuesta de LIA</span><span>${escapeHtml(textoCorto(fallback))}</span>`;
+    renderSidebarLog();
     actualizarEstadoAgente(false);
     if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot is-error"></i><span>Respuesta de muestra</span>';
   } finally {
     liaOcupado = false;
+    renderSugerencias();
     if (input) input.disabled = false;
     if (send) {
       send.disabled = false;
@@ -328,13 +407,14 @@ function renderSugerencias() {
   };
 
   const pendientes = acciones().filter((h) => modoDe(h) === "pendiente");
+  const visibles = liaHistorial.some((m) => m.rol === "yo") ? pendientes.slice(0, 2) : pendientes;
   const contador = document.getElementById("liaSuggestionCount");
-  if (contador) contador.textContent = pendientes.length;
-  cont.innerHTML = pendientes.length
-    ? pendientes.map((h) => {
+  if (contador) contador.textContent = visibles.length;
+  cont.innerHTML = visibles.length
+    ? visibles.map((h) => {
       const [texto, color] = prioridad[h.tono] || prioridad.wheat;
       return `
-        <button type="button" class="csb-sug" data-lia-prompt="${escapeHtml(h.lead)}">
+        <button type="button" class="csb-sug" data-propuesta="${escapeHtml(h.ancla)}" aria-label="Ver propuesta: ${escapeHtml(h.lead)}">
           <span class="csb-sug-icon" style="background:${color}"><i class="ph ${iconoSugerencia(h.tono)}"></i></span>
           <div>
             <strong>${escapeHtml(h.lead)}</strong>
@@ -346,12 +426,12 @@ function renderSugerencias() {
     : `<div class="csb-sug csb-sug-empty"><span class="csb-sug-icon" style="background:var(--olive)"><i class="ph ph-check"></i></span><div><strong>Sin sugerencias pendientes.</strong><em>Todo está al día</em></div></div>`;
 }
 
+renderSidebarLog();
+
 document.getElementById("liaSugerencias")?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-lia-prompt]");
+  const button = event.target.closest("[data-propuesta]");
   if (button) {
-    const input = document.getElementById("chatInput");
-    if (input) input.value = button.dataset.liaPrompt;
-    enviarPreguntaLia();
+    abrirPropuesta(button.dataset.propuesta);
   }
 });
 
@@ -380,24 +460,71 @@ function renderTareas(containerId, limite) {
     </div>`).join("");
 }
 
+function prioridadPropuesta(h) {
+  if (h.tono === "clay") return { etiqueta: "Alta", clase: "high", icono: "ph-warning-circle" };
+  if (h.tono === "leaf") return { etiqueta: "Baja", clase: "low", icono: "ph-chat-circle-dots" };
+  return { etiqueta: "Media", clase: "medium", icono: "ph-magnifying-glass" };
+}
+
+function iconoCategoria(tag) {
+  const iconos = { suelo: "ph-plant", calidad: "ph-medal", beneficio: "ph-drop-half-bottom", nutrición: "ph-flask", aviso: "ph-users-three" };
+  return iconos[tag] || "ph-lightbulb";
+}
+
+function lotesDe(h) {
+  const lotes = (h.chips || []).filter((chip) => chip.kind === "lote").map((chip) => chip.id);
+  if (lotes.length) return lotes.join(", ");
+  if (h.tag === "nutrición") return "L4, L6 y L7";
+  if (h.tag === "calidad" || h.tag === "beneficio") return "Beneficiadero · CCN 51";
+  return "Por confirmar";
+}
+
+function estadoPropuesta(h) {
+  const decision = decisiones[h.ancla];
+  return decision === "aprobada" ? "Aprobada para seguimiento" : decision === "descartada" ? "Descartada" : "Pendiente de revisión";
+}
+
+function tarjetaPropuesta(h, compacta = false) {
+  const prioridad = prioridadPropuesta(h);
+  const decision = decisiones[h.ancla];
+  return `<article class="proposal-card ${compacta ? "proposal-card-compact" : ""}">
+    <button type="button" class="proposal-card-main" onclick="abrirPropuesta('${h.ancla}')">
+      <span class="proposal-category-icon"><i class="ph ${iconoCategoria(h.tag)}"></i></span>
+      <span class="proposal-card-copy"><span class="proposal-card-meta"><span class="proposal-importance ${prioridad.clase}">${prioridad.etiqueta}</span><span>${escapeHtml(h.tag)}</span></span><strong>${escapeHtml(h.lead)}</strong><span>${escapeHtml(lotesDe(h))}</span></span>
+      <i class="ph ph-caret-right proposal-card-arrow"></i>
+    </button>
+    ${compacta ? "" : `<div class="proposal-card-actions">${decision ? `<span class="proposal-decision ${decision}">${estadoPropuesta(h)}</span>` : `<><button class="btn" onclick="decidir('${h.ancla}','aprobada')">Aprobar para seguimiento</button><button class="btn secondary" onclick="decidir('${h.ancla}','descartada')">Descartar</button></>`}</div>`}
+  </article>`;
+}
+
+function renderResumenPropuestas() {
+  const cont = document.getElementById("resumenPropuestas");
+  const pendientes = acciones().filter((h) => modoDe(h) === "pendiente");
+  const badge = document.getElementById("propuestasCount");
+  if (badge) badge.textContent = pendientes.length;
+  if (cont) cont.innerHTML = pendientes.slice(0, 3).map((h) => tarjetaPropuesta(h, true)).join("") || '<span class="muted">No hay propuestas pendientes.</span>';
+}
+
+function renderDetallePropuesta() {
+  const cont = document.getElementById("proposalDetail");
+  const h = acciones().find((item) => item.ancla === propuestaSeleccionada);
+  if (!cont) return;
+  if (!h) { cont.hidden = true; return; }
+  const prioridad = prioridadPropuesta(h);
+  cont.hidden = false;
+  cont.innerHTML = `<div class="proposal-detail-head"><span class="proposal-category-icon"><i class="ph ${iconoCategoria(h.tag)}"></i></span><div><div class="proposal-card-meta"><span class="proposal-importance ${prioridad.clase}">${prioridad.etiqueta}</span><span>${escapeHtml(h.tag)}</span></div><h2>${escapeHtml(h.lead)}</h2><p>${escapeHtml(h.texto)}</p></div><button type="button" class="proposal-close" onclick="cerrarPropuesta()" aria-label="Cerrar detalle"><i class="ph ph-x"></i></button></div><dl class="proposal-facts"><div><dt>Lote afectado</dt><dd>${escapeHtml(lotesDe(h))}</dd></div><div><dt>Impacto esperado</dt><dd>${escapeHtml(h.impacto)}</dd></div><div><dt>Estado</dt><dd>${estadoPropuesta(h)}</dd></div></dl>`;
+}
+
+function cerrarPropuesta() { propuestaSeleccionada = null; renderDetallePropuesta(); }
+window.cerrarPropuesta = cerrarPropuesta;
+
 function renderAcciones() {
   const cont = document.querySelector(".agent-actions");
   if (!cont) return;
 
   const pendientes = acciones().filter((h) => modoDe(h) === "pendiente");
   cont.innerHTML = pendientes.length
-    ? pendientes.map((h) => `
-      <div class="agent-action">
-        <span class="pill ${h.tono === "clay" ? "red" : h.tono === "wheat" ? "yellow" : "blue"}">${escapeHtml(h.tag)}</span>
-        <div>
-          <strong>${escapeHtml(h.lead)}</strong>
-          <span>${escapeHtml(h.texto)}</span>
-          <div class="agent-action-botones">
-            <button class="btn" onclick="decidir('${h.ancla}','aprobada')">Hazlo</button>
-            <button class="btn secondary" onclick="decidir('${h.ancla}','descartada')">No</button>
-          </div>
-        </div>
-      </div>`).join("")
+    ? pendientes.map((h) => tarjetaPropuesta(h)).join("")
     : `<div class="agent-item"><span>Sin propuestas pendientes por ahora.</span></div>`;
 }
 
@@ -422,11 +549,13 @@ cargarHilo();
 renderAcciones();
 renderTimeline();
 renderSugerencias();
+renderResumenPropuestas();
 renderResumenSensores();
 renderSensoresPagina();
 renderTareas("resumenTareas", 4);
 renderTareas("taskListFull", null);
 renderFinca();
+void sincronizarPropuestas();
 hayConexion().then(actualizarEstadoAgente);
 iniciarSincronizacionSensores(SENSORES, () => {
   renderResumenSensores();

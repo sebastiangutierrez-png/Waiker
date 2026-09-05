@@ -12,6 +12,22 @@ import { enviarMensaje, hayConexion } from "./api.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
 
 const $ = (id) => document.getElementById(id);
+const CHAT_STORAGE_KEY = "agromyss-lia-conversation";
+
+function cargarConversacion() {
+  try {
+    const guardada = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "[]");
+    return Array.isArray(guardada) && guardada.length
+      ? guardada.filter((m) => m && (m.rol === "yo" || m.rol === "lia" || m.rol === "error") && typeof m.texto === "string")
+      : [{ rol: "lia", texto: SALUDO_LIA }];
+  } catch {
+    return [{ rol: "lia", texto: SALUDO_LIA }];
+  }
+}
+
+function guardarConversacion() {
+  try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(S.chat.mensajes.slice(-40))); } catch { /* almacenamiento opcional */ }
+}
 
 /** Escapa texto antes de interpolarlo en HTML. Obligatorio para todo lo que
  *  venga de la API: el agente genera texto libre y no debe poder inyectar marcado. */
@@ -54,7 +70,7 @@ const S = {
   lote: "B-1",
   conectado: null,
   chat: {
-    mensajes: [{ rol: "lia", texto: SALUDO_LIA }],
+    mensajes: cargarConversacion(),
     enviando: false,
     etapa: 0
   }
@@ -171,13 +187,13 @@ function renderChatHilo() {
       return `<div class="hilo-yo"><div class="hilo-burbuja-yo">${esc(m.texto)}</div></div>`;
     }
     return `<div class="hilo-msg">
-      <span class="hilo-avatar">L</span>
+      <span class="hilo-avatar"><img src="assets/lia-avatar.png" alt="" /></span>
       <div class="hilo-burbuja ${clase === "lia error" ? "hilo-burbuja-error" : ""}">
         <div class="hilo-burbuja-cab"><span class="hilo-quien">LIA</span><span class="mono hilo-hora">ahora</span></div>
         <div class="hilo-texto-libre">${md(m.texto)}</div>
       </div>
     </div>`;
-  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar">L</span><div class="hilo-burbuja hilo-pensando mono">${esc(ETAPAS_ESPERA[S.chat.etapa])}</div></div>` : "");
+  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar"><img src="assets/lia-avatar.png" alt="" /></span><div class="hilo-burbuja hilo-pensando mono">${esc(ETAPAS_ESPERA[S.chat.etapa])}</div></div>` : "");
 
   caja.innerHTML = chatHtml;
 
@@ -185,7 +201,11 @@ function renderChatHilo() {
 }
 
 function renderChatPie() {
-  $("wk-chat-atajos").innerHTML = ATAJOS_DEMO.map((a) =>
+  const yaConverso = S.chat.mensajes.some((m) => m.rol === "yo");
+  const atajos = yaConverso ? ATAJOS_DEMO.slice(0, 2) : ATAJOS_DEMO;
+  const atajosEl = $("wk-chat-atajos");
+  atajosEl.classList.toggle("chat-atajos-compact", yaConverso);
+  atajosEl.innerHTML = atajos.map((a) =>
     `<button type="button" class="va-pastilla" data-accion="atajo" data-valor="${esc(a)}">${esc(a)}</button>`).join("");
 
   $("wk-chat-input").disabled = S.chat.enviando;
@@ -226,6 +246,7 @@ async function enviarDesdeInput(textoForzado) {
 
   input.value = "";
   S.chat.mensajes.push({ rol: "yo", texto });
+  guardarConversacion();
   S.chat.enviando = true;
   iniciarEtapas();
   render();
@@ -234,6 +255,7 @@ async function enviarDesdeInput(textoForzado) {
   try {
     const respuesta = await enviarMensaje(S.chat.mensajes, { lote: S.lote });
     S.chat.mensajes.push({ rol: "lia", texto: respuesta });
+    guardarConversacion();
     S.conectado = true;
   } catch (err) {
     S.chat.mensajes.push({
@@ -242,6 +264,7 @@ async function enviarDesdeInput(textoForzado) {
         "No pude contactar al agente. Comprueba que el intermediario /api esté desplegado en el Worker.\n\n" +
         "Detalle: " + err.message
     });
+    guardarConversacion();
     S.conectado = false;
   } finally {
     detenerEtapas();

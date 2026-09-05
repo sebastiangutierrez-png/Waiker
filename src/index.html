@@ -31,12 +31,13 @@
         <button type="button" data-page="insumos"><i class="ph ph-package csb-nav-icon"></i>Insumos</button>
 
         <div class="csb-nav-titulo">Agente</div>
-        <button type="button" data-page="propuestas"><i class="ph ph-lightbulb csb-nav-icon"></i>Propuestas</button>
+        <button type="button" data-page="propuestas"><i class="ph ph-lightbulb csb-nav-icon"></i>Propuestas <span class="csb-nav-badge" id="propuestasCount" aria-label="Propuestas pendientes">0</span></button>
         <a href="agente.html"><i class="ph ph-chat-circle-dots csb-nav-icon"></i>Asistente</a>
 
         <div class="csb-nav-titulo">Sistema</div>
         <button type="button" data-page="config"><i class="ph ph-gear csb-nav-icon"></i>Configuración</button>
       </nav>
+
     </aside>
 
     <main class="csb-main">
@@ -114,6 +115,15 @@
               <button type="button" class="ghost-btn" data-page="tareas">Ver todas</button>
             </div>
             <div class="c-list" id="resumenTareas"></div>
+          </div>
+
+          <div class="c-card">
+            <div class="c-card-head">
+              <h3>Propuestas pendientes</h3>
+              <button type="button" class="ghost-btn" data-page="propuestas">Ver todas</button>
+            </div>
+            <p class="muted proposal-summary-note">Muestras para revisar: no crean tareas ni envían instrucciones a LIA.</p>
+            <div class="proposal-summary-list" id="resumenPropuestas"></div>
           </div>
         </div>
       </section>
@@ -309,11 +319,13 @@
         <div class="c-head">
           <div>
             <h1>Propuestas</h1>
-            <p>Recomendaciones de LIA a la espera de tu aprobación.</p>
+            <p>Recomendaciones de LIA a la espera de tu revisión.</p>
           </div>
         </div>
+        <div class="proposal-demo-notice"><i class="ph ph-info"></i><span>Estas son propuestas de muestra. Aprobar o descartar sólo actualiza esta vista; no envía mensajes, crea tareas ni ejecuta acciones.</span></div>
+        <div class="proposal-detail" id="proposalDetail" hidden></div>
         <div class="c-card">
-          <h3>Acciones sugeridas</h3>
+          <h3>Propuestas pendientes</h3>
           <div class="agent-actions"></div>
         </div>
         <div class="c-card" style="margin-top:16px">
@@ -339,7 +351,7 @@
     <aside class="csb-lia">
       <div class="csb-lia-head">
         <div class="csb-lia-identity">
-          <span class="csb-lia-avatar"><i class="ph ph-sparkle"></i></span>
+          <span class="csb-lia-avatar"><img src="assets/lia-avatar.png" alt="" /></span>
           <div><strong>LIA</strong><span>Asistente de la finca</span></div>
         </div>
         <span class="csb-lia-connection" id="liaConnection"><i class="csb-lia-connection-dot"></i><span>Lista para ayudarte</span></span>
@@ -357,6 +369,8 @@
       </div>
 
       <div class="csb-lia-log" id="liaLog" aria-live="polite" aria-label="Actividad de conversación"></div>
+
+      <a class="csb-lia-full" href="agente.html">Ver conversación completa <i class="ph ph-arrow-up-right"></i></a>
 
       <form class="csb-lia-chat" id="liaChatForm">
         <input id="chatInput" autocomplete="off" aria-label="Pregunta a LIA" placeholder="Escribe una pregunta…" />
