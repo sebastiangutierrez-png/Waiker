@@ -28,6 +28,11 @@
   box-sizing: border-box;
 }
 
+.oculto {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -1569,9 +1574,6 @@ h1 span {
   border-radius: 26px;
   background: rgba(255,255,255,.64);
   padding: 20px;
-  min-height: 180px;
-  position: relative;
-  overflow: hidden;
 }
 
 .clima-card h3 {
@@ -1584,17 +1586,6 @@ h1 span {
   color: var(--muted);
 }
 
-.clima-mini {
-  position: absolute;
-  right: 16px;
-  bottom: 16px;
-  width: 110px;
-  height: 50px;
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, transparent 40%, rgba(139,144,34,.35) 45%, transparent 52%),
-    radial-gradient(circle at 70% 35%, rgba(93,131,118,.28), transparent 32%);
-}
 
 .info-card {
   border: 1px solid var(--line);
@@ -2412,16 +2403,25 @@ h1 span {
   --va-fade-grad: linear-gradient(to top, #f6f1e2 62%, rgba(246, 241, 226, 0));
 }
 
-.pagina-agente .csb-main { background: var(--va-bg); }
+/* Página completa fija al viewport: sólo el hilo de chat scrollea,
+   no la página entera — evita el scroll fantasma y que el pie
+   (sticky) termine flotando sobre los mensajes en pantallas cortas. */
+.pagina-agente .concept-shell { height: 100vh; }
+.pagina-agente .csb-main {
+  background: var(--va-bg); height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
+}
 
 .pagina-agente .aviso {
   display: flex; align-items: center; gap: 8px; max-width: 756px; margin: 0 auto 14px;
   padding: 10px 14px; border-radius: 10px; background: var(--va-panel-3);
-  font-size: 12.5px; color: var(--va-tinta-mute);
+  font-size: 12.5px; color: var(--va-tinta-mute); flex: none;
 }
 .pagina-agente .aviso i { width: 9px; height: 9px; border-radius: 50%; flex: none; display: block; }
 
-.pagina-agente .vista-chat { display: flex; flex-direction: column; min-height: 60vh; }
+.pagina-agente .vista-chat {
+  display: flex; flex-direction: column; flex: 1; min-height: 0; overflow-y: auto;
+}
 
 .pagina-agente .chat-cima,
 .pagina-agente .chat-datos,
@@ -2499,7 +2499,7 @@ h1 span {
 }
 
 .pagina-agente .chat-pie {
-  position: sticky; bottom: 0; padding: 14px 0 4px; background: var(--va-fade-grad); max-width: 756px; margin: 0 auto; width: 100%;
+  flex: none; padding: 14px 0 4px; background: var(--va-bg); max-width: 756px; margin: 0 auto; width: 100%;
 }
 
 .pagina-agente .chat-atajos { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 10px; }
@@ -2523,3 +2523,11 @@ h1 span {
   background: var(--va-acento); color: #fdfaf3; font-family: inherit;
 }
 .pagina-agente .chat-form-nota { max-width: 756px; margin: 8px auto 0; font-size: 10.5px; color: var(--va-tinta-tenue); text-align: center; }
+
+@media (max-width: 720px) {
+  /* La barra lateral pasa a fila arriba del contenido en vez de columna
+     lateral, así que ya no puede repartirse los 100vh con .csb-main. */
+  .pagina-agente .concept-shell,
+  .pagina-agente .csb-main { height: auto; }
+  .pagina-agente .vista-chat { flex: none; max-height: 60vh; }
+}
