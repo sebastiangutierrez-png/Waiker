@@ -2380,6 +2380,7 @@ h1 span {
 @media (max-width: 720px) {
   .concept-shell { display: block; }
   .csb { position: relative; height: auto; flex-direction: row; overflow-x: auto; align-items: center; }
+  .csb-logo { flex: none; width: 40px; padding: 0; }
   .csb-nav { flex-direction: row; }
   .c-stats { grid-template-columns: 1fr; }
   .c-cols-3 { grid-template-columns: 1fr; }
