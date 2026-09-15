@@ -40,7 +40,10 @@ async function pedir(ruta, opciones = {}) {
     });
 
     if (!res.ok) {
-      const detalle = await res.text().catch(() => "");
+      // Un 404 del hosting devuelve una página HTML: no sirve como detalle
+      // y terminaba impresa tal cual en el chat.
+      const esHtml = (res.headers.get("content-type") || "").includes("html");
+      const detalle = esHtml ? "" : await res.text().catch(() => "");
       throw new Error(`${res.status} ${res.statusText}${detalle ? " · " + detalle.slice(0, 200) : ""}`);
     }
 

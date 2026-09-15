@@ -8,8 +8,8 @@
   <!-- Phosphor Icons (familia única en todo el panel). Reemplazó a los
        emojis que se usaban antes como iconos de navegación y de tarjeta. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
-  <link rel="stylesheet" href="css/styles.css?v=4" />
-  <script type="module" src="js/main.js?v=2"></script>
+  <link rel="stylesheet" href="css/styles.css?v=9" />
+  <script type="module" src="js/main.js?v=4"></script>
 </head>
 
 <body>
@@ -21,8 +21,8 @@
         <img class="csb-logo-img" src="assets/logoAgromyss.png" alt="Agromyss" />
       </div>
 
-      <nav class="csb-nav">
-        <button type="button" class="active" data-page="resumen"><i class="ph ph-squares-four csb-nav-icon"></i>Resumen</button>
+      <nav class="csb-nav" id="csbNav">
+        <button type="button" class="active" aria-current="page" data-page="resumen"><i class="ph ph-squares-four csb-nav-icon"></i>Resumen</button>
         <button type="button" data-page="lotes"><i class="ph ph-map-trifold csb-nav-icon"></i>Lotes</button>
         <button type="button" data-page="clima"><i class="ph ph-cloud-sun csb-nav-icon"></i>Clima</button>
         <button type="button" data-page="sensores"><i class="ph ph-thermometer-simple csb-nav-icon"></i>Sensores</button>
@@ -37,7 +37,7 @@
         <div class="csb-nav-titulo">Sistema</div>
         <button type="button" data-page="config"><i class="ph ph-gear csb-nav-icon"></i>Configuración</button>
       </nav>
-
+      <button type="button" class="csb-mas" aria-controls="csbNav" aria-expanded="false"><i class="ph ph-dots-three-outline csb-nav-icon"></i><span>Más</span></button>
     </aside>
 
     <main class="csb-main">
@@ -49,7 +49,7 @@
             <p>Vereda Santa Bárbara, Maceo · Cañón del río Alicante</p>
           </div>
           <div class="c-head-actions">
-            <select class="c-select"><option>Campaña 2025/26</option></select>
+            <select class="c-select" aria-label="Campaña"><option>Campaña 2025/26</option></select>
             <button type="button" class="c-select">Hoy</button>
           </div>
         </div>
@@ -348,11 +348,14 @@
 
     </main>
 
-    <aside class="csb-lia">
+    <button type="button" class="lia-abrir" aria-controls="liaPanel" aria-expanded="false"><img src="assets/lia-avatar.png" alt="" /><span>Preguntar a LIA</span></button>
+
+    <aside class="csb-lia" id="liaPanel" aria-label="LIA, asistente de la finca">
       <div class="csb-lia-head">
         <div class="csb-lia-identity">
           <span class="csb-lia-avatar"><img src="assets/lia-avatar.png" alt="" /></span>
           <div><strong>LIA</strong><span>Asistente de la finca</span></div>
+          <button type="button" class="lia-cerrar" aria-label="Cerrar LIA"><i class="ph ph-x"></i></button>
         </div>
         <span class="csb-lia-connection" id="liaConnection"><i class="csb-lia-connection-dot"></i><span>Lista para ayudarte</span></span>
       </div>

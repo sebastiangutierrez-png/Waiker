@@ -1,3 +1,4 @@
+import "./nav.js";
 import { enviarMensaje, hayConexion, obtenerPropuestas, registrarDecision } from "./api.js";
 import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR } from "./data.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
@@ -106,9 +107,12 @@ document.querySelectorAll("[data-page]:not(.csb-nav [data-page])").forEach((el) 
   el.addEventListener("click", () => openPage(el.dataset.page));
 });
 
-function openPage(pageId) {
+function openPage(pageId, moverFoco = true) {
   navButtons.forEach((button) => {
-    button.classList.toggle("active", button.dataset.page === pageId);
+    const activo = button.dataset.page === pageId;
+    button.classList.toggle("active", activo);
+    if (activo) button.setAttribute("aria-current", "page");
+    else button.removeAttribute("aria-current");
   });
 
   pages.forEach((page) => {
@@ -116,6 +120,14 @@ function openPage(pageId) {
   });
 
   document.querySelector(".csb-main")?.scrollTo({ top: 0, behavior: "smooth" });
+
+  // Lleva el foco al título de la página nueva para que lectores de pantalla
+  // y teclado sepan que el contenido cambió.
+  const titulo = document.getElementById(pageId)?.querySelector("h1, h2");
+  if (moverFoco && titulo) {
+    titulo.tabIndex = -1;
+    titulo.focus({ preventScroll: true });
+  }
 }
 
 function renderSensoresPagina() {
@@ -443,7 +455,7 @@ function renderResumenSensores() {
   cont.innerHTML = SENSORES.slice(0, 4).map((s) => `
     <div class="c-list-row">
       <div><strong>${escapeHtml(s.lugar)}</strong><span>${escapeHtml(s.tipo || s.id)}</span></div>
-      <span style="color:${COLOR_SENSOR[s.estado]};font-weight:800">${s.valor}${s.unidad}</span>
+      <span style="color:${s.estado === "aviso" ? "#84601b" : COLOR_SENSOR[s.estado]};font-weight:800">${s.valor}${s.unidad}</span>
     </div>`).join("");
 }
 
@@ -493,7 +505,7 @@ function tarjetaPropuesta(h, compacta = false) {
       <span class="proposal-card-copy"><span class="proposal-card-meta"><span class="proposal-importance ${prioridad.clase}">${prioridad.etiqueta}</span><span>${escapeHtml(h.tag)}</span></span><strong>${escapeHtml(h.lead)}</strong><span>${escapeHtml(lotesDe(h))}</span></span>
       <i class="ph ph-caret-right proposal-card-arrow"></i>
     </button>
-    ${compacta ? "" : `<div class="proposal-card-actions">${decision ? `<span class="proposal-decision ${decision}">${estadoPropuesta(h)}</span>` : `<><button class="btn" onclick="decidir('${h.ancla}','aprobada')">Aprobar para seguimiento</button><button class="btn secondary" onclick="decidir('${h.ancla}','descartada')">Descartar</button></>`}</div>`}
+    ${compacta ? "" : `<div class="proposal-card-actions">${decision ? `<span class="proposal-decision ${decision}">${estadoPropuesta(h)}</span>` : `<button class="btn" onclick="decidir('${h.ancla}','aprobada')">Aprobar para seguimiento</button><button class="btn secondary" onclick="decidir('${h.ancla}','descartada')">Descartar</button>`}</div>`}
   </article>`;
 }
 
@@ -565,4 +577,8 @@ iniciarSincronizacionSensores(SENSORES, () => {
   marcarSincronizado();
 });
 iniciarSincronizacionClima(renderPronostico);
+
+// agente.html enlaza a index.html#lotes, #clima, etc.
+const paginaInicial = location.hash.slice(1);
+if (document.getElementById(paginaInicial)?.classList.contains("page")) openPage(paginaInicial, false);
 

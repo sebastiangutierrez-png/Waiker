@@ -7,6 +7,7 @@
 //  (index.html), así que esta página es sólo la conversación.
 // ─────────────────────────────────────────────────────────────
 
+import "./nav.js";
 import { C, LOTES, SENSORES, COLOR_SENSOR, CLIMA, SALUDO_LIA, ATAJOS_DEMO } from "./data.js";
 import { enviarMensaje, hayConexion } from "./api.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";

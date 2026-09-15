@@ -12,20 +12,20 @@
     rel="stylesheet" />
 
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
-  <link rel="stylesheet" href="css/styles.css?v=3" />
-  <script type="module" src="js/agente.js"></script>
+  <link rel="stylesheet" href="css/styles.css?v=9" />
+  <script type="module" src="js/agente.js?v=2"></script>
 </head>
 
 <body class="pagina-agente">
   <div class="grain"></div>
 
-  <div class="concept-shell" style="grid-template-columns:232px 1fr">
+  <div class="concept-shell">
     <aside class="csb">
       <div class="csb-logo">
         <img class="csb-logo-img" src="assets/logoAgromyss.png" alt="Agromyss" />
       </div>
 
-      <nav class="csb-nav">
+      <nav class="csb-nav" id="csbNav">
         <a href="index.html"><i class="ph ph-squares-four csb-nav-icon"></i>Resumen</a>
         <a href="index.html#lotes"><i class="ph ph-map-trifold csb-nav-icon"></i>Lotes</a>
         <a href="index.html#clima"><i class="ph ph-cloud-sun csb-nav-icon"></i>Clima</a>
@@ -36,11 +36,12 @@
 
         <div class="csb-nav-titulo">Agente</div>
         <a href="index.html#propuestas"><i class="ph ph-lightbulb csb-nav-icon"></i>Propuestas</a>
-        <a href="agente.html" class="active"><i class="ph ph-chat-circle-dots csb-nav-icon"></i>Asistente</a>
+        <a href="agente.html" class="active" aria-current="page"><i class="ph ph-chat-circle-dots csb-nav-icon"></i>Asistente</a>
 
         <div class="csb-nav-titulo">Sistema</div>
         <a href="index.html#config"><i class="ph ph-gear csb-nav-icon"></i>Configuración</a>
       </nav>
+      <button type="button" class="csb-mas" aria-controls="csbNav" aria-expanded="false"><i class="ph ph-dots-three-outline csb-nav-icon"></i><span>Más</span></button>
     </aside>
 
     <main class="csb-main" style="padding-top:26px">

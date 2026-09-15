@@ -30,7 +30,7 @@ function ultimoSuelo(loteId) {
 /** Bandas de acidez usadas en la tarjeta de fertilidad y en las tarjetas de lote. */
 const BANDAS = [
   { nombre: "Deseable", min: 5.5, color: "var(--olive)" },
-  { nombre: "Ligeramente ácido", min: 5.0, color: "var(--gold)" },
+  { nombre: "Ligeramente ácido", min: 5.0, color: "var(--gold)", texto: "#84601b" },
   { nombre: "Ácido", min: 0, color: "var(--danger)" }
 ];
 
@@ -71,7 +71,7 @@ export function renderFertilidad() {
   const pHProm = ultimos.reduce((a, x) => a + x.suelo.pH, 0) / ultimos.length;
 
   cifra.textContent = num(pHProm, 1);
-  cifra.style.color = bandaDe(pHProm).color;
+  cifra.style.color = bandaDe(pHProm).texto || bandaDe(pHProm).color;
 
   bandas.innerHTML = BANDAS.map((b) => {
     const dentro = ultimos.filter((x) => bandaDe(x.suelo.pH).nombre === b.nombre);
