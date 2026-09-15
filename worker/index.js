@@ -26,6 +26,9 @@
 //  nunca "anon". La portada (/) y css/assets son públicos.
 // ─────────────────────────────────────────────────────────────
 
+// El mismo parser que usa la web para la hoja; wrangler lo empaqueta.
+import { parseCSV, indexarEncabezados } from "../src/app/js/csv.js";
+
 const TIMEOUT_MS = 85000;     // por debajo del límite de borde de Cloudflare (~100s);
                                // por encima del timeout interno del puente (120s lo excede,
                                // pero el turno más lento medido fue 25s — hay margen amplio)
@@ -220,6 +223,46 @@ async function leerJson(request) {
   }
 }
 
+// ── hoja de sensores ─────────────────────────────────────────
+//
+// Formulario → Google Sheets → CSV publicado. Se lee en cada turno para
+// que el agente vea lo mismo que el panel en ese momento. El puente
+// rechaza mensajes de más de MAX_MENSAJE, así que va compacta: sólo las
+// filas con lectura.
+
+const MAX_SENSORES = 1500; // caracteres de MAX_MENSAJE reservados para la hoja
+const MAX_PISTA = 400;     // el contexto del panel lo manda el navegador: se acota
+
+/** Lecturas de la hoja en texto compacto, o null si no hay hoja o falló. */
+async function contextoSensores(env) {
+  if (!env.SHEET_CSV_URL) return null;
+  try {
+    const res = await fetch(env.SHEET_CSV_URL, { signal: AbortSignal.timeout(5000) });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const [cabecera = [], ...filas] = parseCSV(await res.text());
+    const col = indexarEncabezados(cabecera);
+    const [iId, iLugar, iTipo, iValor, iUnidad, iEstado, iFecha] =
+      ["id", "lugar", "tipo", "valor", "unidad", "estado", "ultima_actualizacion"].map(col);
+    if (iId === -1 || iValor === -1) return null;
+
+    const c = (fila, i) => (i === -1 ? "" : String(fila[i] ?? "").trim());
+    const lineas = filas.filter((f) => c(f, iValor)).map((f) => {
+      const cuando = c(f, iFecha) ? `, ${c(f, iFecha)}` : "";
+      return `${c(f, iId)} ${c(f, iLugar)} · ${c(f, iTipo)}: ${c(f, iValor)}${c(f, iUnidad)} (${c(f, iEstado) || "ok"}${cuando})`;
+    });
+    const sinLectura = filas.length - lineas.length;
+
+    let texto = lineas.length ? lineas.join("\n") : "Ningún sensor tiene lectura anotada todavía.";
+    if (lineas.length && sinLectura) texto += `\n(${sinLectura} sensores más sin lectura anotada)`;
+    // ponytail: recorte duro; si la hoja crece mucho, pasarla como archivo del workspace del agente.
+    return texto.slice(0, MAX_SENSORES);
+  } catch (err) {
+    // Sin hoja el chat sigue funcionando; sólo pierde este contexto.
+    console.error("hoja de sensores", err?.message || err);
+    return null;
+  }
+}
+
 // ── /api/chat ────────────────────────────────────────────────
 //
 // El puente mantiene el historial por su cuenta (una sesión de agente
@@ -240,10 +283,15 @@ async function manejarChat(request, env, email) {
     contexto.sensor && `Sensor seleccionado: ${contexto.sensor}.`,
     contexto.cultivo && contexto.cultivo !== "Todos" && `Filtro de cultivo: ${contexto.cultivo}.`,
     contexto.rango && `Rango de tiempo: ${contexto.rango}.`
-  ].filter(Boolean).join(" ");
+  ].filter(Boolean).join(" ").slice(0, MAX_PISTA);
 
-  const mensaje = String(ultimo.texto).slice(0, MAX_MENSAJE) +
-    (pista ? `\n\n[Contexto del panel: ${pista}]` : "");
+  const sensores = await contextoSensores(env);
+  const extra =
+    (pista ? `\n\n[Contexto del panel: ${pista}]` : "") +
+    (sensores ? `\n\n[Lecturas de sensores de la finca (hoja del formulario, leída ahora):\n${sensores}]` : "");
+
+  // El puente devuelve 400 por encima de MAX_MENSAJE: se recorta la pregunta, no el contexto.
+  const mensaje = String(ultimo.texto).slice(0, MAX_MENSAJE - extra.length) + extra;
 
   const respuesta = await llamarPuente(env, mensaje, email);
   return json({ respuesta });

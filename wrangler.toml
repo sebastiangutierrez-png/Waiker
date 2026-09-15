@@ -25,6 +25,12 @@ run_worker_first = ["/app", "/app/*"]
 # sigue siendo la ruta de modelrelay, sin agente detrás.
 BRIDGE_URL = "https://api.agromyss.com/agent"
 
+# Hoja de sensores publicada como CSV (formulario → Google Sheets). El
+# Worker la adjunta a cada pregunta para que el agente vea las lecturas.
+# Es la misma URL que SHEET_CSV_URL en src/app/js/sheetSensores.js:
+# si cambias una, cambia la otra. Vacía = el chat va sin lecturas.
+SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQY-EaYV4j-bkTMKs9MAmSH1UiQQApq0dR_WU0MqP9356af0nHCBQywbZfL5tCgbTHZBnjt-UcqHKbU/pub?gid=1737731176&single=true&output=csv"
+
 # Obligatorios: sin ellos /app y /api/* responden 503.
 # Zero Trust > Access > Applications > (la app de agromyss-web) >
 # "Application Audience (AUD) Tag". No son secretos.

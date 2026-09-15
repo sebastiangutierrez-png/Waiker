@@ -22,7 +22,7 @@
 const BASE = "/api";
 
 /** Corta cualquier petición que tarde demasiado. */
-const TIMEOUT_MS = 20000;
+const TIMEOUT_MS = 60000; // turnos reales de 19-41 s; el Worker corta a 85 s
 
 /**
  * Envuelve fetch con timeout y errores legibles.
