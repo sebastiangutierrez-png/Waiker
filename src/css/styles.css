@@ -2948,3 +2948,115 @@ h1 span {
   .c-select,
   .ghost-btn { min-height: 44px; }
 }
+
+/* ═══════════ Portada pública (/) y 403 ═══════════ */
+/* Sin JS y sin datos de la finca: sólo la puerta de entrada. Reutiliza los
+   tokens y el lenguaje de .panel para que la portada y el panel se reconozcan
+   como la misma aplicación. */
+
+.portada {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 28px 16px;
+}
+
+.portada-panel {
+  width: min(1080px, 100%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  align-items: stretch;
+  gap: 34px;
+  padding: 34px;
+  border: 1px solid rgba(255,255,255,.75);
+  border-radius: 40px;
+  background: rgba(255,253,246,.88);
+  backdrop-filter: blur(22px);
+  box-shadow: var(--shadow);
+}
+
+.portada-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 18px 4px 18px 18px;
+}
+
+.portada-logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: var(--olive);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.22);
+}
+
+/* El PNG del logo es blanco con transparencia: necesita fondo oscuro,
+   como en .brand-logo y en la barra lateral del panel. */
+.portada-logo img { display: block; width: 150px; max-width: 100%; height: auto; }
+
+.portada-texto h1 {
+  margin: 26px 0 12px;
+  font-size: clamp(28px, 3.4vw, 40px);
+  line-height: 1.12;
+  letter-spacing: -.02em;
+  color: var(--forest);
+}
+
+.portada-texto p {
+  margin: 0 0 26px;
+  max-width: 34ch;
+  color: var(--muted);
+  line-height: 1.55;
+}
+
+.portada-entrar {
+  display: inline-block;
+  padding: 14px 32px;
+  border-radius: 999px;
+  background: var(--forest);
+  color: var(--cream-2);
+  font-weight: 800;
+  text-decoration: none;
+  box-shadow: 0 16px 34px rgba(23,50,31,.22);
+  transition: background .22s ease, transform .22s ease;
+}
+.portada-entrar:hover, .portada-entrar:focus-visible { background: var(--forest-2); }
+.portada-entrar:active { transform: translateY(1px); }
+
+.portada-nota { margin-top: 18px; }
+
+.portada-foto {
+  margin: 0;
+  border-radius: 26px;
+  overflow: hidden;
+  background: var(--sage-2);
+  box-shadow: var(--shadow-soft);
+}
+
+.portada-foto img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 300px;
+  object-fit: cover;
+}
+
+@media (max-width: 860px) {
+  .portada-panel {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 22px;
+    border-radius: 32px;
+  }
+  .portada-texto { padding: 6px 4px; align-items: center; text-align: center; }
+  .portada-texto p { max-width: 42ch; }
+  .portada-foto { order: -1; }
+  .portada-foto img { min-height: 190px; max-height: 240px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .portada-entrar { transition: none; }
+}

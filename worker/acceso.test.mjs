@@ -44,8 +44,11 @@ globalThis.fetch = async (url, opciones = {}) => {
   return Response.json({ propuestas: [] });
 };
 
-let assetsServidos = 0;
-const conAssets = (e) => ({ ...e, ASSETS: { fetch: async () => (assetsServidos++, new Response("estatico")) } });
+let assetsServidos = [];
+const conAssets = (e) => ({
+  ...e,
+  ASSETS: { fetch: async (req) => (assetsServidos.push(new URL(req.url).pathname), new Response("estatico")) }
+});
 const pedir = (ruta, jwt, e = env) =>
   worker.fetch(new Request(`https://panel.test${ruta}`, { headers: jwt ? { "Cf-Access-Jwt-Assertion": jwt } : {} }), conAssets(e));
 
@@ -56,7 +59,7 @@ assert.equal((await pedir("/")).status, 200);
 assert.equal((await pedir("/css/styles.css")).status, 200);
 
 // Privado sin JWT, con JWT roto, de otra app o caducado → nunca llega a ASSETS ni al puente.
-assetsServidos = 0; llamadasPuente = [];
+assetsServidos = []; llamadasPuente = [];
 assert.equal((await pedir("/app/js/data.js")).status, 403);
 assert.equal((await pedir("/app")).status, 403);
 assert.equal((await pedir("/app/js/data.js", "basura")).status, 403);
@@ -64,7 +67,8 @@ assert.equal((await pedir("/app/js/data.js", await firmar({ aud: ["otra-app"] })
 assert.equal((await pedir("/app/js/data.js", await firmar({ exp: 1 }))).status, 403);
 assert.equal((await pedir("/api/propuestas")).status, 401);
 assert.equal((await pedir("/api/propuestas", valido.slice(0, -4) + "AAAA")).status, 401);
-assert.equal(assetsServidos, 0);
+// De los estáticos sólo se toca la página pública del 403: ningún archivo de /app/.
+assert.deepEqual(new Set(assetsServidos), new Set(["/403.html"]));
 assert.equal(llamadasPuente.length, 0);
 
 // Sin configuración de Access → 503, no "anon".

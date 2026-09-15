@@ -11,6 +11,7 @@ cola de propuestas del agente Openclaw.
 ```
 src/                sitio estático (lo que se despliega)
   index.html        portada PÚBLICA: sin datos ni JS
+  403.html          PÚBLICA: la sirve el Worker si /app llega sin acceso
   css/styles.css    sistema visual + reglas responsive (público)
   assets/           logos e imágenes (público)
   app/              PRIVADO: Access + JWT verificado por el Worker

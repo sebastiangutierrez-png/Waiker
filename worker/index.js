@@ -309,6 +309,17 @@ async function manejarDecisionPropuesta(request, env, email) {
   return llamarPuenteJson(env, "/propuestas/decision", "POST", { id, decision }, email);
 }
 
+/**
+ * 403 con cara: la portada del 403 es pública (/403.html), así que servirla
+ * no filtra nada. Es el único estático que se toca en una denegación.
+ */
+async function paginaSinAcceso(env, url) {
+  const cabeceras = { "content-type": "text/html; charset=utf-8", "cache-control": "no-store" };
+  if (!env.ASSETS) return new Response("No autorizado.", { status: 403, headers: cabeceras });
+  const res = await env.ASSETS.fetch(new Request(new URL("/403.html", url)));
+  return new Response(res.body, { status: 403, headers: cabeceras });
+}
+
 /** El panel y la API: nada aquí se sirve sin JWT de Access verificado. */
 const esPrivada = (ruta) => ruta === "/app" || ruta.startsWith("/app/") || ruta.startsWith("/api/");
 
@@ -335,7 +346,7 @@ export default {
       if (!email) {
         return url.pathname.startsWith("/api/")
           ? error("No autorizado.", 401)
-          : new Response("No autorizado.", { status: 403, headers: { "cache-control": "no-store" } });
+          : await paginaSinAcceso(env, url);
       }
     }
 

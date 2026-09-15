@@ -9,36 +9,25 @@
   <!-- Página pública: aquí NO va ningún dato de la finca ni ningún JS.
        Todo lo privado vive en /app/ y /api/, detrás de Cloudflare Access
        y verificado de nuevo por el Worker (ver worker/index.js). -->
-  <link rel="stylesheet" href="css/styles.css?v=9" />
-  <style>
-    .portada { min-height: 100vh; display: grid; place-items: center; padding: 32px 16px; }
-    .portada-tarjeta {
-      width: 100%; max-width: 440px; text-align: center;
-      background: var(--paper); border: 1px solid var(--line);
-      border-radius: var(--radius-xl); box-shadow: var(--shadow); padding: 44px 32px;
-    }
-    .portada-logo { width: 150px; max-width: 60%; }
-    .portada h1 { margin: 24px 0 8px; font-size: 26px; color: var(--forest); }
-    .portada p { margin: 0 0 28px; color: var(--muted); line-height: 1.5; }
-    .portada-entrar {
-      display: inline-block; padding: 13px 30px; border-radius: 999px;
-      background: var(--forest); color: var(--cream-2); font-weight: 600; text-decoration: none;
-    }
-    .portada-entrar:hover, .portada-entrar:focus-visible { background: var(--forest-2); }
-    .portada small { display: block; margin-top: 18px; color: var(--muted); font-size: 12px; }
-  </style>
+  <link rel="stylesheet" href="css/styles.css?v=10" />
 </head>
 
 <body>
   <div class="grain"></div>
 
   <main class="portada">
-    <div class="portada-tarjeta">
-      <img class="portada-logo" src="assets/logoAgromyss.png" alt="Agromyss" />
-      <h1>Panel de la finca</h1>
-      <p>Monitoreo agronómico, sensores y asistente LIA para el equipo de Agromyss.</p>
-      <a class="portada-entrar" href="app/">Entrar</a>
-      <small>Acceso sólo para cuentas autorizadas.</small>
+    <div class="portada-panel">
+      <div class="portada-texto">
+        <span class="portada-logo"><img src="assets/logoAgromyss.png" alt="Agromyss" /></span>
+        <h1>El panel de la finca</h1>
+        <p>Monitoreo agronómico, sensores y el asistente LIA para el equipo de Agromyss.</p>
+        <a class="portada-entrar" href="app/">Entrar</a>
+        <span class="pill portada-nota">Sólo cuentas autorizadas</span>
+      </div>
+
+      <figure class="portada-foto">
+        <img src="assets/finca-acceso.jpg" alt="Camino de tierra entre la vegetación de la finca, con la montaña al fondo" width="1400" height="934" fetchpriority="high" />
+      </figure>
     </div>
   </main>
 </body>
