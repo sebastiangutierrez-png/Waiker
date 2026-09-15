@@ -10,15 +10,23 @@ cola de propuestas del agente Openclaw.
 
 ```
 src/                sitio estático (lo que se despliega)
-  index.html        estructura y contenedores
-  css/styles.css    sistema visual + reglas responsive
-  js/data.js        datos de muestra (TODO: reemplazar por datos reales)
-  js/api.js         cliente HTTP hacia /api (sin credenciales)
-  js/main.js        estado, render y eventos
+  index.html        portada PÚBLICA: sin datos ni JS
+  css/styles.css    sistema visual + reglas responsive (público)
+  assets/           logos e imágenes (público)
+  app/              PRIVADO: Access + JWT verificado por el Worker
+    index.html      panel
+    agente.html     asistente LIA
+    js/data.js      informes reales de la finca
+    js/api.js       cliente HTTP hacia /api (sin credenciales)
+    js/main.js      estado, render y eventos
 worker/             intermediario de Cloudflare
-  index.js          rutas /api/* + servido de src/
-  wrangler.toml.example
+  index.js          rutas /api/*, cierre de /app y /api, servido de src/
+  acceso.test.mjs   node worker/acceso.test.mjs
+wrangler.toml
 ```
+
+**Nada con datos de la finca va fuera de `src/app/`.** Lo de fuera es
+público por diseño.
 
 Sin framework y sin paso de compilación: los archivos se sirven tal cual.
 `js/` usa módulos ES nativos (`<script type="module">`).

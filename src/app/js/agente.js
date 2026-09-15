@@ -188,13 +188,13 @@ function renderChatHilo() {
       return `<div class="hilo-yo"><div class="hilo-burbuja-yo">${esc(m.texto)}</div></div>`;
     }
     return `<div class="hilo-msg">
-      <span class="hilo-avatar"><img src="assets/lia-avatar.png" alt="" /></span>
+      <span class="hilo-avatar"><img src="../assets/lia-avatar.png" alt="" /></span>
       <div class="hilo-burbuja ${clase === "lia error" ? "hilo-burbuja-error" : ""}">
         <div class="hilo-burbuja-cab"><span class="hilo-quien">LIA</span><span class="mono hilo-hora">ahora</span></div>
         <div class="hilo-texto-libre">${md(m.texto)}</div>
       </div>
     </div>`;
-  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar"><img src="assets/lia-avatar.png" alt="" /></span><div class="hilo-burbuja hilo-pensando mono">${esc(ETAPAS_ESPERA[S.chat.etapa])}</div></div>` : "");
+  }).join("") + (S.chat.enviando ? `<div class="hilo-msg"><span class="hilo-avatar"><img src="../assets/lia-avatar.png" alt="" /></span><div class="hilo-burbuja hilo-pensando mono">${esc(ETAPAS_ESPERA[S.chat.etapa])}</div></div>` : "");
 
   caja.innerHTML = chatHtml;
 

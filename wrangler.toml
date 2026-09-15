@@ -15,6 +15,9 @@ compatibility_date = "2026-01-01"
 [assets]
 directory = "src"
 binding = "ASSETS"
+# Sin esto, los estáticos de /app/ se sirven sin pasar por el Worker y
+# la verificación del JWT (worker/index.js, esPrivada) nunca se ejecuta.
+run_worker_first = ["/app", "/app/*"]
 
 [vars]
 # El agent-bridge de nemoclaw (127.0.0.1:7353), publicado por Caddy
@@ -22,14 +25,12 @@ binding = "ASSETS"
 # sigue siendo la ruta de modelrelay, sin agente detrás.
 BRIDGE_URL = "https://api.agromyss.com/agent"
 
-# Opcionales — habilitan identidad verificada (email real por sesión)
-# en vez de compartir una sola sesión "anon" entre todo el mundo.
-# Sácalos del panel de Zero Trust > Access > Applications:
-#   CF_ACCESS_TEAM_DOMAIN = tu subdominio *.cloudflareaccess.com
-#   CF_ACCESS_AUD         = el "Application Audience (AUD) Tag" de
-#                           la aplicación que protege esta página
-# CF_ACCESS_TEAM_DOMAIN = "CAMBIAR-tu-equipo.cloudflareaccess.com"
-# CF_ACCESS_AUD = "CAMBIAR-aud-tag"
+# Obligatorios: sin ellos /app y /api/* responden 503.
+# Zero Trust > Access > Applications > (la app de agromyss-web) >
+# "Application Audience (AUD) Tag". No son secretos.
+# Si recreas la aplicación de Access, el AUD cambia: actualízalo aquí.
+CF_ACCESS_TEAM_DOMAIN = "agromyss-lia1.cloudflareaccess.com"
+CF_ACCESS_AUD = "2746e684ae123ec966cb6fd68dd97bd155db5d9179236a56f252c82c52540e82"
 
 # ⚠️  EL TOKEN NO VA AQUÍ. wrangler.toml se versiona en git.
 #

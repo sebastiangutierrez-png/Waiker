@@ -19,11 +19,11 @@
 //      CF_ACCESS_TEAM_DOMAIN  ej. "midominio.cloudflareaccess.com" (opcional)
 //      CF_ACCESS_AUD          Application Audience Tag de Access (opcional)
 //
-//  Si CF_ACCESS_TEAM_DOMAIN/CF_ACCESS_AUD no están configurados, el
-//  Worker sirve el chat sin identidad verificada (identidad "anon"):
-//  útil en desarrollo, pero significa que todos los visitantes
-//  comparten una sola sesión de agente. Configúralos antes de
-//  considerar esto producción — ver verificarAccess() más abajo.
+//  Rutas privadas (/app y /api/*): el Worker exige un JWT de Access
+//  válido aunque Access ya esté delante. Si Access se configura mal
+//  (una ruta de más en Bypass, un dominio nuevo sin proteger), esto
+//  sigue sin servir datos ni llamar al puente. Sin CF_ACCESS_* → 503,
+//  nunca "anon". La portada (/) y css/assets son públicos.
 // ─────────────────────────────────────────────────────────────
 
 const TIMEOUT_MS = 85000;     // por debajo del límite de borde de Cloudflare (~100s);
@@ -91,7 +91,7 @@ function base64UrlADatos(segmento) {
 /**
  * Verifica el JWT de Cloudflare Access y devuelve el email autenticado,
  * o null si Access no está configurado, no hay JWT, o la verificación falla.
- * Nunca lanza: un fallo aquí degrada a "anon", no rompe el chat.
+ * Nunca lanza: el enrutador convierte null en 401/403.
  */
 async function verificarAccess(request, env) {
   if (!env.CF_ACCESS_TEAM_DOMAIN || !env.CF_ACCESS_AUD) return null;
@@ -227,7 +227,7 @@ async function leerJson(request) {
 // usuario, no la conversación completa. El cliente sigue mandando
 // `mensajes` con todo el historial local — aquí sólo se usa el último.
 
-async function manejarChat(request, env) {
+async function manejarChat(request, env, email) {
   const { mensajes = [], contexto = {} } = await leerJson(request);
 
   const ultimo = [...mensajes].reverse().find(
@@ -245,32 +245,51 @@ async function manejarChat(request, env) {
   const mensaje = String(ultimo.texto).slice(0, MAX_MENSAJE) +
     (pista ? `\n\n[Contexto del panel: ${pista}]` : "");
 
-  const email = await verificarAccess(request, env);
-  const identidad = email || "anon";
-
-  const respuesta = await llamarPuente(env, mensaje, identidad);
+  const respuesta = await llamarPuente(env, mensaje, email);
   return json({ respuesta });
 }
 
-async function manejarPropuestas(request, env) {
-  const email = await verificarAccess(request, env);
-  return llamarPuenteJson(env, "/propuestas", "GET", null, email || "web-anon");
+async function manejarPropuestas(env, email) {
+  return llamarPuenteJson(env, "/propuestas", "GET", null, email);
 }
 
-async function manejarDecisionPropuesta(request, env) {
+async function manejarDecisionPropuesta(request, env, email) {
   const { id, decision } = await leerJson(request);
   if (typeof id !== "string" || !["aprobada", "descartada"].includes(decision)) {
     return error("Decisión inválida.", 400);
   }
-  const email = await verificarAccess(request, env);
-  return llamarPuenteJson(env, "/propuestas/decision", "POST", { id, decision }, email || "web-anon");
+  return llamarPuenteJson(env, "/propuestas/decision", "POST", { id, decision }, email);
 }
+
+/** El panel y la API: nada aquí se sirve sin JWT de Access verificado. */
+const esPrivada = (ruta) => ruta === "/app" || ruta.startsWith("/app/") || ruta.startsWith("/api/");
 
 // ── enrutador ────────────────────────────────────────────────
 
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
+
+    // Enlaces viejos, de antes de mover el panel a /app/.
+    if (url.pathname === "/agente.html") {
+      return Response.redirect(new URL("/app/agente.html", url), 301);
+    }
+
+    // Falla cerrado: Access delante es la primera barrera, esto la segunda.
+    // Para que /app/* llegue aquí y no lo sirva ASSETS directamente hace
+    // falta run_worker_first en wrangler.toml.
+    let email = null;
+    if (esPrivada(url.pathname)) {
+      if (!env.CF_ACCESS_TEAM_DOMAIN || !env.CF_ACCESS_AUD) {
+        return error("Cloudflare Access no está configurado en el Worker.", 503);
+      }
+      email = await verificarAccess(request, env);
+      if (!email) {
+        return url.pathname.startsWith("/api/")
+          ? error("No autorizado.", 401)
+          : new Response("No autorizado.", { status: 403, headers: { "cache-control": "no-store" } });
+      }
+    }
 
     // Todo lo que no sea /api/ es la web estática.
     if (!url.pathname.startsWith("/api/")) {
@@ -293,17 +312,17 @@ export default {
 
       if (ruta === "/api/chat") {
         if (request.method !== "POST") return error("Usa POST.", 405);
-        return await manejarChat(request, env);
+        return await manejarChat(request, env, email);
       }
 
       if (ruta === "/api/propuestas") {
         if (request.method !== "GET") return error("Usa GET.", 405);
-        return await manejarPropuestas(request, env);
+        return await manejarPropuestas(env, email);
       }
 
       if (ruta === "/api/propuestas/decision") {
         if (request.method !== "POST") return error("Usa POST.", 405);
-        return await manejarDecisionPropuesta(request, env);
+        return await manejarDecisionPropuesta(request, env, email);
       }
 
       return error("Ruta no encontrada.", 404);

@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agromyss | Hacienda Mesetas</title>
+
+  <!-- Phosphor Icons (familia única en todo el panel). Reemplazó a los
+       emojis que se usaban antes como iconos de navegación y de tarjeta. -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
+  <link rel="stylesheet" href="../css/styles.css?v=9" />
+  <script type="module" src="js/main.js?v=4"></script>
+</head>
+
+<body>
+  <div class="grain"></div>
+
+  <div class="concept-shell" id="app">
+    <aside class="csb">
+      <div class="csb-logo">
+        <img class="csb-logo-img" src="../assets/logoAgromyss.png" alt="Agromyss" />
+      </div>
+
+      <nav class="csb-nav" id="csbNav">
+        <button type="button" class="active" aria-current="page" data-page="resumen"><i class="ph ph-squares-four csb-nav-icon"></i>Resumen</button>
+        <button type="button" data-page="lotes"><i class="ph ph-map-trifold csb-nav-icon"></i>Lotes</button>
+        <button type="button" data-page="clima"><i class="ph ph-cloud-sun csb-nav-icon"></i>Clima</button>
+        <button type="button" data-page="sensores"><i class="ph ph-thermometer-simple csb-nav-icon"></i>Sensores</button>
+        <button type="button" data-page="tareas"><i class="ph ph-check-square csb-nav-icon"></i>Tareas</button>
+        <button type="button" data-page="reportes"><i class="ph ph-flask csb-nav-icon"></i>Laboratorio</button>
+        <button type="button" data-page="insumos"><i class="ph ph-package csb-nav-icon"></i>Insumos</button>
+
+        <div class="csb-nav-titulo">Agente</div>
+        <button type="button" data-page="propuestas"><i class="ph ph-lightbulb csb-nav-icon"></i>Propuestas <span class="csb-nav-badge" id="propuestasCount" aria-label="Propuestas pendientes">0</span></button>
+        <a href="agente.html"><i class="ph ph-chat-circle-dots csb-nav-icon"></i>Asistente</a>
+
+        <div class="csb-nav-titulo">Sistema</div>
+        <button type="button" data-page="config"><i class="ph ph-gear csb-nav-icon"></i>Configuración</button>
+      </nav>
+      <button type="button" class="csb-mas" aria-controls="csbNav" aria-expanded="false"><i class="ph ph-dots-three-outline csb-nav-icon"></i><span>Más</span></button>
+    </aside>
+
+    <main class="csb-main">
+
+      <section id="resumen" class="page active">
+        <div class="c-head">
+          <div>
+            <h1>Hacienda Mesetas</h1>
+            <p>Vereda Santa Bárbara, Maceo · Cañón del río Alicante</p>
+          </div>
+          <div class="c-head-actions">
+            <select class="c-select" aria-label="Campaña"><option>Campaña 2025/26</option></select>
+            <button type="button" class="c-select">Hoy</button>
+          </div>
+        </div>
+
+        <div class="c-stats" id="resumenStats"></div>
+
+        <div class="c-grid">
+          <div class="c-card">
+            <div class="c-card-head">
+              <h3>Fertilidad del suelo</h3>
+              <span class="pill">Análisis 2023</span>
+            </div>
+            <div class="fert-cifra">
+              <strong id="fertilidadValor">-</strong>
+              <span>pH promedio de los 6 lotes</span>
+            </div>
+            <div class="fert-bandas" id="fertilidadBandas"></div>
+            <p class="muted" style="font-size:11.5px;margin-top:10px">
+              El rango deseable para cacao va de 5,5 a 6,5. Por debajo de 5,5 el aluminio
+              empieza a bloquear la absorción de fósforo y calcio.
+            </p>
+          </div>
+
+          <div class="c-card">
+            <h3>Lotes</h3>
+            <div class="map-board" style="min-height:230px">
+              <div class="map-center">
+                <strong>Beneficiadero</strong>
+                <span>Fermentación y secado en sitio</span>
+              </div>
+              <div class="map-grid" id="mapaLotes"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="c-cols-3">
+          <div class="c-card">
+            <h3>Clima</h3>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
+              <i class="ph ph-cloud-sun" style="font-size:28px;color:var(--olive)"></i>
+              <div>
+                <strong style="font-size:20px;display:block" id="homeAverageTemperature2">22°C</strong>
+                <span class="muted" style="font-size:12px" id="homeCondicion">Parcialmente nublado</span>
+              </div>
+            </div>
+            <div class="c-clima-dias" id="homeClimaDias">
+              <div class="c-clima-dia">Hoy<strong>22°</strong>12°</div>
+              <div class="c-clima-dia">Jue<strong>23°</strong>13°</div>
+              <div class="c-clima-dia">Vie<strong>25°</strong>14°</div>
+              <div class="c-clima-dia">Sáb<strong>24°</strong>13°</div>
+              <div class="c-clima-dia">Dom<strong>21°</strong>11°</div>
+            </div>
+          </div>
+
+          <div class="c-card">
+            <h3>Sensores</h3>
+            <div class="c-list" id="resumenSensores"></div>
+          </div>
+
+          <div class="c-card">
+            <div class="c-card-head">
+              <h3>Tareas</h3>
+              <button type="button" class="ghost-btn" data-page="tareas">Ver todas</button>
+            </div>
+            <div class="c-list" id="resumenTareas"></div>
+          </div>
+
+          <div class="c-card">
+            <div class="c-card-head">
+              <h3>Propuestas pendientes</h3>
+              <button type="button" class="ghost-btn" data-page="propuestas">Ver todas</button>
+            </div>
+            <p class="muted proposal-summary-note">Muestras para revisar: no crean tareas ni envían instrucciones a LIA.</p>
+            <div class="proposal-summary-list" id="resumenPropuestas"></div>
+          </div>
+        </div>
+      </section>
+
+      <section id="lotes" class="page">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Mapa operativo</span>
+              <h2>Lotes de cacao</h2>
+              <p class="section-copy">
+                Seis lotes muestreados por el Laboratorio de Suelos de la Universidad Nacional.
+                Cada tarjeta cruza el último análisis con lo que anota la gente en la hoja de campo.
+              </p>
+            </div>
+          </div>
+
+          <div class="lotes-grid" id="lotesGrid"></div>
+        </div>
+      </section>
+
+      <section id="sensores" class="page">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Hoja de campo</span>
+              <h2>Sensores y telemetría</h2>
+              <p class="section-copy">
+                Lecturas anotadas a mano en la finca y volcadas a una hoja de cálculo compartida.
+                Todavía no hay sensores físicos conectados, pero el tablero lee esa hoja como si lo fueran.
+              </p>
+            </div>
+            <span class="pill blue" id="sensoresEstadoSync">Sincronizando…</span>
+          </div>
+
+          <div class="sensor-summary" id="sensorCards"></div>
+        </div>
+      </section>
+
+      <section id="clima" class="page">
+        <div class="panel">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Pronóstico en vivo</span>
+              <h2>Clima y entorno</h2>
+              <p class="section-copy">Pronóstico en tiempo real para la finca, con señales de riego, lluvia y viento.</p>
+            </div>
+            <span class="pill blue" id="climaActualizado">Actualizado 08:12</span>
+          </div>
+
+          <div class="clima-grid">
+            <div class="clima-hero">
+              <div class="clima-head">
+                <div>
+                  <span class="pill">Hoy</span>
+                  <h3 id="climaHoy">27°C · Parcialmente nublado</h3>
+                  <p id="climaVentana">Ventana recomendada de aplicaciones: 9:00 a.m. a 1:30 p.m.</p>
+                  <p id="climaLluviaAviso" style="margin-top:6px;color:var(--blue)">Lluvia esperada a las 15:00</p>
+                </div>
+                <div class="clima-score">
+                  <strong>Riesgo lluvia</strong>
+                  <span id="climaLluviaProb">32%</span>
+                </div>
+              </div>
+              <div class="clima-strip" id="climaStrip">
+                <div class="clima-chip active">
+                  <strong>08:00</strong>
+                  <span>24°</span>
+                  <small>Nublado</small>
+                </div>
+                <div class="clima-chip">
+                  <strong>10:00</strong>
+                  <span>27°</span>
+                  <small>Viento NE</small>
+                </div>
+                <div class="clima-chip">
+                  <strong>12:00</strong>
+                  <span>29°</span>
+                  <small>Calor seco</small>
+                </div>
+                <div class="clima-chip">
+                  <strong>15:00</strong>
+                  <span>26°</span>
+                  <small>Posible lluvia</small>
+                </div>
+              </div>
+            </div>
+
+            <div class="clima-card">
+              <span class="pill">Temperatura</span>
+              <h3 id="climaTempCard">27°C</h3>
+              <p id="climaTempNota">Condición favorable para mantenimiento y revisión.</p>
+            </div>
+
+            <div class="clima-card">
+              <span class="pill blue">Humedad</span>
+              <h3 id="climaHumCard">64%</h3>
+              <p id="climaHumNota">Promedio general estable; revisa los lotes en alerta.</p>
+            </div>
+
+            <div class="clima-card">
+              <span class="pill">Viento</span>
+              <h3 id="climaVientoCard">NE · 12 km/h</h3>
+              <p>Validar velocidad antes de aplicaciones foliares.</p>
+            </div>
+
+            <div class="clima-card">
+              <span class="pill yellow">Lluvia</span>
+              <h3 id="climaLluviaCard">Posible tarde</h3>
+              <p>Evitar aplicación después de las 2:00 p.m.</p>
+            </div>
+
+            <div class="clima-card">
+              <span class="pill">Pluviometría</span>
+              <h3 id="climaPluvCard">2 mm</h3>
+              <p>Acumulado del día, anotado a mano en la hoja.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="tareas" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Tareas</h1>
+            <p>Plan del día y asignaciones de la cuadrilla.</p>
+          </div>
+        </div>
+        <div class="c-card">
+          <div class="task-list" id="taskListFull"></div>
+        </div>
+      </section>
+
+      <section id="reportes" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Laboratorio</h1>
+            <p>Análisis de suelo, foliares y catación de la finca.</p>
+          </div>
+        </div>
+
+        <div class="c-card">
+          <div class="c-card-head">
+            <h3>Catación</h3>
+            <span class="pill">FEDECACAO · 17 abr 2026</span>
+          </div>
+          <div class="calidad-grid" id="calidadGrid"></div>
+        </div>
+
+        <div class="c-card" style="margin-top:16px">
+          <div class="c-card-head">
+            <h3>Análisis de suelo</h3>
+            <span class="pill">Universidad Nacional · sede Medellín</span>
+          </div>
+          <div class="tabla-scroll">
+            <table class="lab-tabla" id="tablaSuelos"></table>
+          </div>
+          <p class="muted" style="font-size:11.5px;margin-top:10px">
+            pH sin unidad. Materia orgánica y carbono orgánico en %. Aluminio, calcio, magnesio,
+            potasio y CICE en cmol(+)/kg. Fósforo en mg/kg. Un guion significa que el informe no
+            reporta ese valor.
+          </p>
+        </div>
+
+        <div class="c-card" style="margin-top:16px">
+          <div class="c-card-head">
+            <h3>Análisis foliar</h3>
+            <span class="pill">Muestreo octubre 2023</span>
+          </div>
+          <div class="tabla-scroll">
+            <table class="lab-tabla" id="tablaFoliares"></table>
+          </div>
+          <p class="muted" style="font-size:11.5px;margin-top:10px">
+            Nitrógeno, calcio, magnesio, potasio, fósforo y azufre en %. Hierro, manganeso,
+            cobre, zinc y boro en mg/kg. El Mandarino, La Corraleja y La Roca no se han muestreado.
+          </p>
+        </div>
+      </section>
+
+      <section id="insumos" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Insumos</h1>
+            <p>Próximamente.</p>
+          </div>
+        </div>
+        <div class="c-card">
+          <p class="muted">El control de stock e insumos va a vivir acá. Todavía no está conectado.</p>
+        </div>
+      </section>
+
+      <section id="propuestas" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Propuestas</h1>
+            <p>Recomendaciones de LIA a la espera de tu revisión.</p>
+          </div>
+        </div>
+        <div class="proposal-demo-notice"><i class="ph ph-info"></i><span>Estas son propuestas de muestra. Aprobar o descartar sólo actualiza esta vista; no envía mensajes, crea tareas ni ejecuta acciones.</span></div>
+        <div class="proposal-detail" id="proposalDetail" hidden></div>
+        <div class="c-card">
+          <h3>Propuestas pendientes</h3>
+          <div class="agent-actions"></div>
+        </div>
+        <div class="c-card" style="margin-top:16px">
+          <h3>Rastreo de decisiones</h3>
+          <div class="agent-timeline"></div>
+        </div>
+      </section>
+
+      <section id="config" class="page">
+        <div class="c-head">
+          <div>
+            <h1>Configuración</h1>
+            <p>Próximamente.</p>
+          </div>
+        </div>
+        <div class="c-card">
+          <p class="muted">Ajustes de cuenta, finca y notificaciones van a vivir acá. Todavía no están conectados.</p>
+        </div>
+      </section>
+
+    </main>
+
+    <button type="button" class="lia-abrir" aria-controls="liaPanel" aria-expanded="false"><img src="../assets/lia-avatar.png" alt="" /><span>Preguntar a LIA</span></button>
+
+    <aside class="csb-lia" id="liaPanel" aria-label="LIA, asistente de la finca">
+      <div class="csb-lia-head">
+        <div class="csb-lia-identity">
+          <span class="csb-lia-avatar"><img src="../assets/lia-avatar.png" alt="" /></span>
+          <div><strong>LIA</strong><span>Asistente de la finca</span></div>
+          <button type="button" class="lia-cerrar" aria-label="Cerrar LIA"><i class="ph ph-x"></i></button>
+        </div>
+        <span class="csb-lia-connection" id="liaConnection"><i class="csb-lia-connection-dot"></i><span>Lista para ayudarte</span></span>
+      </div>
+
+      <div class="csb-lia-insight" id="liaInsight" aria-live="polite">
+        <span class="csb-lia-insight-label"><i class="ph ph-sparkle"></i> Lectura rápida</span>
+        El lote El Huevo bajó a pH 4,9 en el análisis de 2023 y perdió capacidad de intercambio.
+        Es el primero que conviene corregir.
+      </div>
+
+      <div>
+        <div class="csb-lia-sugerencias-titulo"><span>Sugerencias para hoy</span><span class="csb-lia-count" id="liaSuggestionCount">0</span></div>
+        <div class="csb-lia-sugerencias" id="liaSugerencias"></div>
+      </div>
+
+      <div class="csb-lia-log" id="liaLog" aria-live="polite" aria-label="Actividad de conversación"></div>
+
+      <a class="csb-lia-full" href="agente.html">Ver conversación completa <i class="ph ph-arrow-up-right"></i></a>
+
+      <form class="csb-lia-chat" id="liaChatForm">
+        <input id="chatInput" autocomplete="off" aria-label="Pregunta a LIA" placeholder="Escribe una pregunta…" />
+        <button type="submit" id="chatSend" aria-label="Enviar pregunta"><i class="ph ph-arrow-up"></i></button>
+      </form>
+    </aside>
+  </div>
+</body>
+
+</html>
