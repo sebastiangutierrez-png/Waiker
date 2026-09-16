@@ -5,29 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sin acceso | Agromyss</title>
   <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#17321f" />
 
   <!-- La sirve el Worker cuando /app llega sin un JWT de Access válido
        (ver worker/index.js). Pública y sin datos, como la portada. -->
-  <link rel="stylesheet" href="/css/styles.css?v=10" />
+  <link rel="stylesheet" href="/css/styles.css?v=11" />
 </head>
 
-<body>
-  <div class="grain"></div>
-
+<body class="portada-body">
   <main class="portada">
-    <div class="portada-panel">
-      <div class="portada-texto">
-        <span class="portada-logo"><img src="/assets/logoAgromyss.png" alt="Agromyss" /></span>
+    <div class="portada-texto">
+      <img class="portada-logo" src="/assets/logoAgromyss.png" alt="Agromyss" />
+      <div>
         <h1>Esta cuenta no tiene acceso</h1>
-        <p>El panel está reservado al equipo de Agromyss. Si crees que deberías entrar, pídele acceso a quien administra la finca.</p>
+        <p>El panel es sólo para el equipo de Agromyss. Si deberías poder entrar, pide acceso a quien administra la finca.</p>
         <a class="portada-entrar" href="/">Volver</a>
-        <span class="pill portada-nota">Error 403</span>
       </div>
-
-      <figure class="portada-foto">
-        <img src="/assets/finca-acceso.jpg" alt="Camino de tierra entre la vegetación de la finca, con la montaña al fondo" width="1400" height="934" />
-      </figure>
     </div>
+
+    <figure class="portada-foto">
+      <img src="/assets/finca-acceso.jpg" alt="Camino de tierra entre la vegetación de la finca, con la montaña al fondo" width="1400" height="934" />
+    </figure>
   </main>
 </body>
 </html>

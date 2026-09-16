@@ -5,30 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Agromyss | Waiker</title>
   <meta name="robots" content="noindex" />
+  <meta name="theme-color" content="#17321f" />
 
   <!-- Página pública: aquí NO va ningún dato de la finca ni ningún JS.
        Todo lo privado vive en /app/ y /api/, detrás de Cloudflare Access
        y verificado de nuevo por el Worker (ver worker/index.js). -->
-  <link rel="stylesheet" href="css/styles.css?v=10" />
+  <link rel="stylesheet" href="css/styles.css?v=11" />
 </head>
 
-<body>
-  <div class="grain"></div>
-
+<body class="portada-body">
   <main class="portada">
-    <div class="portada-panel">
-      <div class="portada-texto">
-        <span class="portada-logo"><img src="assets/logoAgromyss.png" alt="Agromyss" /></span>
+    <div class="portada-texto">
+      <img class="portada-logo" src="assets/logoAgromyss.png" alt="Agromyss" />
+      <div>
         <h1>El panel de la finca</h1>
-        <p>Monitoreo agronómico, sensores y el asistente LIA para el equipo de Agromyss.</p>
+        <p>Sensores, clima, laboratorio y el asistente LIA en un solo lugar. Acceso sólo para el equipo de Agromyss.</p>
         <a class="portada-entrar" href="app/">Entrar</a>
-        <span class="pill portada-nota">Sólo cuentas autorizadas</span>
       </div>
-
-      <figure class="portada-foto">
-        <img src="assets/finca-acceso.jpg" alt="Camino de tierra entre la vegetación de la finca, con la montaña al fondo" width="1400" height="934" fetchpriority="high" />
-      </figure>
     </div>
+
+    <figure class="portada-foto">
+      <img src="assets/finca-acceso.jpg" alt="Camino de tierra entre la vegetación de la finca, con la montaña al fondo" width="1400" height="934" fetchpriority="high" />
+    </figure>
   </main>
 </body>
 </html>
