@@ -2964,24 +2964,24 @@ body.portada-body::before { display: none; }
 .portada {
   min-height: 100dvh;
   display: grid;
-  grid-template-columns: minmax(360px, 5fr) 7fr;
+  grid-template-columns: minmax(360px, 1fr) 1.15fr;
 }
 
 .portada-texto {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: 48px;
-  padding: clamp(28px, 5vw, 64px);
+  gap: clamp(24px, 3.4vh, 44px);
+  padding: clamp(28px, 6vh, 56px) clamp(28px, 5vw, 64px);
 }
 
-.portada-logo { display: block; width: 132px; height: auto; }
+.portada-logo { display: block; width: 116px; height: auto; }
 
 .portada-texto h1 {
   margin: 0 0 16px;
   max-width: 12ch;
   text-wrap: balance;
-  font-size: clamp(36px, 4.4vw, 60px);
+  font-size: clamp(36px, 4vw, 54px);
   font-weight: 700;
   line-height: 1.04;
   letter-spacing: -.03em;
@@ -2989,8 +2989,8 @@ body.portada-body::before { display: none; }
 }
 
 .portada-texto p {
-  margin: 0 0 32px;
-  max-width: 36ch;
+  margin: 0 0 28px;
+  max-width: 44ch;
   font-size: 17px;
   line-height: 1.55;
   color: rgba(255,250,240,.72);
@@ -3009,6 +3009,40 @@ body.portada-body::before { display: none; }
 .portada-entrar:hover { background: var(--sage); }
 .portada-entrar:focus-visible { outline: 2px solid var(--cream-2); outline-offset: 3px; }
 .portada-entrar:active { transform: translateY(1px); }
+
+.portada-modulos h2 {
+  margin: 0 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255,250,240,.6);
+}
+
+.portada-modulos dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 32px;
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--line-dark);
+}
+
+.portada-modulos dt { font-size: 15px; font-weight: 700; color: var(--cream-2); }
+
+.portada-modulos dd {
+  margin: 4px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: rgba(255,250,240,.64);
+}
+
+.portada-pie {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 24px;
+  font-size: 12.5px;
+  color: rgba(255,250,240,.58);
+}
 
 .portada-foto {
   margin: 0;

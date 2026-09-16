@@ -9,19 +9,38 @@
 
   <!-- Página pública: aquí NO va ningún dato de la finca ni ningún JS.
        Todo lo privado vive en /app/ y /api/, detrás de Cloudflare Access
-       y verificado de nuevo por el Worker (ver worker/index.js). -->
-  <link rel="stylesheet" href="css/styles.css?v=11" />
+       y verificado de nuevo por el Worker (ver worker/index.js).
+       La lista de módulos describe lo que hay, nunca lo que dice. -->
+  <link rel="stylesheet" href="css/styles.css?v=12" />
 </head>
 
 <body class="portada-body">
   <main class="portada">
     <div class="portada-texto">
       <img class="portada-logo" src="assets/logoAgromyss.png" alt="Agromyss" />
+
       <div>
         <h1>El panel de la finca</h1>
-        <p>Sensores, clima, laboratorio y el asistente LIA en un solo lugar. Acceso sólo para el equipo de Agromyss.</p>
+        <p>El seguimiento diario de la finca, para el equipo de Agromyss.</p>
         <a class="portada-entrar" href="app/">Entrar</a>
       </div>
+
+      <section class="portada-modulos" aria-labelledby="portada-modulos-titulo">
+        <h2 id="portada-modulos-titulo">Dentro del panel</h2>
+        <dl>
+          <div><dt>Lotes</dt><dd>Análisis de suelo por lote y lo anotado en campo.</dd></div>
+          <div><dt>Sensores</dt><dd>Lecturas de la hoja de campo, en un tablero.</dd></div>
+          <div><dt>Clima</dt><dd>Pronóstico con señales de riego, lluvia y viento.</dd></div>
+          <div><dt>Laboratorio</dt><dd>Análisis de suelo, foliares y catación.</dd></div>
+          <div><dt>Tareas</dt><dd>Plan del día y asignaciones de la cuadrilla.</dd></div>
+          <div><dt>LIA</dt><dd>Asistente que lee las lecturas y deja propuestas.</dd></div>
+        </dl>
+      </section>
+
+      <footer class="portada-pie">
+        <span>¿No puedes entrar? Pide acceso a quien administra la finca.</span>
+        <span>© 2026 Agromyss</span>
+      </footer>
     </div>
 
     <figure class="portada-foto">
