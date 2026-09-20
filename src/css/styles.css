@@ -2967,21 +2967,28 @@ body.portada-body::before { display: none; }
   grid-template-columns: minmax(360px, 1fr) 1.15fr;
 }
 
+/* La columna entera tiene que caber en una pantalla de portátil (1280x720
+   es la más común): si no cabe, lo que queda debajo del pliegue es
+   justamente la línea de "¿no puedes entrar?". Por eso los espacios se
+   miden en vh y no en píxeles fijos: encogen con la ventana en vez de
+   empujar el pie fuera de la pantalla. */
 .portada-texto {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: clamp(24px, 3.4vh, 44px);
-  padding: clamp(28px, 6vh, 56px) clamp(28px, 5vw, 64px);
+  gap: clamp(18px, 2.4vh, 36px);
+  padding: clamp(24px, 4.2vh, 52px) clamp(28px, 5vw, 64px);
 }
 
 .portada-logo { display: block; width: 116px; height: auto; }
 
 .portada-texto h1 {
-  margin: 0 0 16px;
+  margin: 0 0 12px;
   max-width: 12ch;
   text-wrap: balance;
-  font-size: clamp(36px, 4vw, 54px);
+  /* También acotado por la altura: dos líneas de 54px se comen 112px de
+     pantalla, que es lo que falta abajo en un portátil de 720. */
+  font-size: clamp(36px, min(4vw, 6.4vh), 54px);
   font-weight: 700;
   line-height: 1.04;
   letter-spacing: -.03em;
@@ -2989,7 +2996,7 @@ body.portada-body::before { display: none; }
 }
 
 .portada-texto p {
-  margin: 0 0 28px;
+  margin: 0 0 22px;
   max-width: 44ch;
   font-size: 17px;
   line-height: 1.55;
@@ -3020,9 +3027,9 @@ body.portada-body::before { display: none; }
 .portada-modulos dl {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px 32px;
+  gap: 12px 32px;
   margin: 0;
-  padding-top: 18px;
+  padding-top: 16px;
   border-top: 1px solid var(--line-dark);
 }
 
@@ -3062,6 +3069,23 @@ body.portada-body::before { display: none; }
   .portada { grid-template-columns: 1fr; grid-template-rows: 38dvh 1fr; }
   .portada-foto { order: -1; }
   .portada-texto { gap: 32px; }
+}
+
+/* Un portátil de 768px con barra de tareas y barra del navegador deja
+   unos 620px de ventana: ahí faltan ~35px. Se recortan del logo y del
+   aire alrededor de la lista, no del texto. */
+@media (min-width: 861px) and (max-height: 680px) {
+  .portada-texto { gap: 12px; padding: 16px clamp(28px, 5vw, 64px); }
+  .portada-logo { width: 96px; }
+  .portada-modulos h2 { margin-bottom: 8px; }
+  .portada-modulos dl { padding-top: 12px; gap: 10px 32px; }
+}
+
+/* En un teléfono, dos columnas dejan los módulos en tiras de ~140px y
+   "Análisis de suelo por lote y lo anotado en campo" sale en cuatro
+   líneas. Cabe de sobra en una sola columna: la página ya se desplaza. */
+@media (max-width: 480px) {
+  .portada-modulos dl { grid-template-columns: 1fr; gap: 14px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
