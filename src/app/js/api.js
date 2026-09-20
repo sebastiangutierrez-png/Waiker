@@ -61,17 +61,18 @@ async function pedir(ruta, opciones = {}) {
 /**
  * Pregunta libre al asistente LIA.
  *
- * @param {{rol: string, texto: string}[]} historial conversación previa
+ * Va sólo el mensaje nuevo, no el historial: el puente mantiene una sesión
+ * de agente por identidad, así que la conversación previa ya la tiene él.
+ * Lo guardado en el navegador es para repintar la página, no para el agente.
+ *
+ * @param {string} mensaje pregunta del usuario
  * @param {object} contexto estado actual del panel (lote y sensor seleccionados, etc.)
  * @returns {Promise<string>} respuesta del asistente
  */
-export async function enviarMensaje(historial, contexto = {}) {
+export async function enviarMensaje(mensaje, contexto = {}) {
   const datos = await pedir("/chat", {
     method: "POST",
-    body: JSON.stringify({
-      mensajes: historial.map((m) => ({ rol: m.rol, texto: m.texto })),
-      contexto
-    })
+    body: JSON.stringify({ mensaje, contexto })
   });
 
   const texto = datos && typeof datos.respuesta === "string" ? datos.respuesta.trim() : "";
@@ -116,15 +117,37 @@ export async function registrarDecision(id, decision) {
 }
 
 /**
- * Comprueba si el Worker intermediario está disponible.
- * Permite mostrar "modo prototipo" sin lanzar errores en consola.
+ * Lecturas de sensores de la hoja del formulario, ya parseadas por el Worker.
+ *
+ * El navegador no habla con Google: la URL de la hoja vive sólo en el Worker
+ * (una copia, no dos) y allí se cachea, así que abrir el panel no dispara una
+ * descarga del CSV por pestaña.
+ *
+ * @returns {Promise<Array|null>} sensores, o null si no hay hoja o falló
+ */
+export async function obtenerSensores() {
+  try {
+    const datos = await pedir("/sensores");
+    return Array.isArray(datos?.sensores) && datos.sensores.length ? datos.sensores : null;
+  } catch (err) {
+    console.warn("No se pudieron leer los sensores:", err.message);
+    return null;
+  }
+}
+
+/**
+ * Comprueba si hay camino completo hasta el agente.
+ *
+ * No basta con que responda el Worker: /salud le pregunta al puente, porque
+ * un Worker sano con nemoclaw caído seguiría diciendo "conectada" mientras
+ * cada pregunta falla.
  *
  * @returns {Promise<boolean>}
  */
 export async function hayConexion() {
   try {
-    await pedir("/salud");
-    return true;
+    const datos = await pedir("/salud");
+    return datos?.puente === true;
   } catch {
     return false;
   }

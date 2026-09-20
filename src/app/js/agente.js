@@ -11,34 +11,11 @@ import "./nav.js";
 import { C, LOTES, SENSORES, COLOR_SENSOR, CLIMA, SALUDO_LIA, ATAJOS_DEMO } from "./data.js";
 import { enviarMensaje, hayConexion } from "./api.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
+import { esc, cargarConversacion, guardarConversacion } from "./chat.js";
 
 const $ = (id) => document.getElementById(id);
-const CHAT_STORAGE_KEY = "agromyss-lia-conversation";
 
-function cargarConversacion() {
-  try {
-    const guardada = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "[]");
-    return Array.isArray(guardada) && guardada.length
-      ? guardada.filter((m) => m && (m.rol === "yo" || m.rol === "lia" || m.rol === "error") && typeof m.texto === "string")
-      : [{ rol: "lia", texto: SALUDO_LIA }];
-  } catch {
-    return [{ rol: "lia", texto: SALUDO_LIA }];
-  }
-}
-
-function guardarConversacion() {
-  try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(S.chat.mensajes.slice(-40))); } catch { /* almacenamiento opcional */ }
-}
-
-/** Escapa texto antes de interpolarlo en HTML. Obligatorio para todo lo que
- *  venga de la API: el agente genera texto libre y no debe poder inyectar marcado. */
-const esc = (v) =>
-  String(v ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+const guardar = () => guardarConversacion(S.chat.mensajes);
 
 const mdInline = (s) =>
   s
@@ -71,7 +48,7 @@ const S = {
   lote: "B-1",
   conectado: null,
   chat: {
-    mensajes: cargarConversacion(),
+    mensajes: cargarConversacion([{ rol: "lia", texto: SALUDO_LIA }]),
     enviando: false,
     etapa: 0
   }
@@ -115,7 +92,7 @@ function renderAviso() {
   el.hidden = false;
   el.innerHTML = S.conectado
     ? `<i style="background:${C.leaf}"></i> Conectada con el agente vía agent-bridge.`
-    : `<i style="background:${C.clay}"></i> Sin conexión con el agente todavía — el chat responde con datos de muestra hasta que el Worker /api esté desplegado.`;
+    : `<i style="background:${C.clay}"></i> Sin conexión con el agente — las preguntas fallarán hasta que el puente responda. Ninguna respuesta de aquí es inventada.`;
 }
 
 function renderChatCima() {
@@ -247,16 +224,16 @@ async function enviarDesdeInput(textoForzado) {
 
   input.value = "";
   S.chat.mensajes.push({ rol: "yo", texto });
-  guardarConversacion();
+  guardar();
   S.chat.enviando = true;
   iniciarEtapas();
   render();
   $("wk-chat-hilo").scrollTop = $("wk-chat-hilo").scrollHeight;
 
   try {
-    const respuesta = await enviarMensaje(S.chat.mensajes, { lote: S.lote });
+    const respuesta = await enviarMensaje(texto, { lote: S.lote });
     S.chat.mensajes.push({ rol: "lia", texto: respuesta });
-    guardarConversacion();
+    guardar();
     S.conectado = true;
   } catch (err) {
     S.chat.mensajes.push({
@@ -265,7 +242,7 @@ async function enviarDesdeInput(textoForzado) {
         "No pude contactar al agente. Comprueba que el intermediario /api esté desplegado en el Worker.\n\n" +
         "Detalle: " + err.message
     });
-    guardarConversacion();
+    guardar();
     S.conectado = false;
   } finally {
     detenerEtapas();

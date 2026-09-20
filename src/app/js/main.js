@@ -2,6 +2,7 @@ import "./nav.js";
 import { enviarMensaje, hayConexion, obtenerPropuestas, registrarDecision } from "./api.js";
 import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR } from "./data.js";
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
+import { esc as escapeHtml, cargarConversacion, guardarConversacion } from "./chat.js";
 import { iniciarSincronizacionClima } from "./climaApi.js";
 import { renderFinca, renderLotes, renderMapaLotes } from "./finca.js";
 
@@ -205,122 +206,23 @@ function renderPronostico({ actual, horas, dias }) {
   }
 }
 
-function getReply(text) {
-  const value = text.toLowerCase();
-
-  if (value.includes("hoy") || value.includes("tarea") || value.includes("plan")) {
-    return "Plan sugerido: 1) revisar humedad del Lote B, 2) tomar fotos del Lote C, 3) registrar lluvia real, 4) validar fertilizante, 5) no hacer aplicación foliar si llueve en la tarde.";
-  }
-
-  if (value.includes("riesgo") || value.includes("alerta")) {
-    return "Riesgos activos: humedad baja en Lote B, posible lluvia en la tarde y fotos pendientes para diagnóstico fitosanitario en Lote C.";
-  }
-
-  if (value.includes("lote") || value.includes("mango")) {
-    return "El Lote B de mango está marcado en atención por humedad baja. La recomendación demo es revisar suelo manualmente antes de programar riego o fertilización.";
-  }
-
-  if (value.includes("whatsapp") || value.includes("mensaje")) {
-    return "Mensaje sugerido: “Buenos días. Por favor revise humedad del Lote B antes de las 8:00 a.m. y reporte foto del suelo. No programar aplicación foliar si se confirma lluvia.”";
-  }
-
-  if (value.includes("trabajador") || value.includes("equipo")) {
-    return "Asignación demo: Juan Carlos revisa Lote B; Daniel sube fotos del Lote C; María registra lluvia real y confirma cierre de tarea pendiente.";
-  }
-
-  if (value.includes("resumen")) {
-    return "Resumen ejecutivo: la finca está operativa, con riesgo fitosanitario medio. El principal foco es Lote B por humedad baja y posible lluvia que afecta labores foliares.";
-  }
-
-  return "Respuesta demo: en la versión real responderé con datos de OpenCloud, documentos agronómicos, clima, fotos, tareas y trazabilidad completa.";
-}
-
-function escapeHtml(value) {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
-}
-
-function formatInlineMarkdown(value) {
-  return value
-    .replace(/`([^`]+)`/g, "<code>$1</code>")
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
-    .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")
-    .replace(/\*([^*]+)\*/g, "<em>$1</em>");
-}
-
-function renderMarkdown(value) {
-  const escaped = escapeHtml(value);
-  const lines = escaped.split("\n");
-  let html = "";
-  let inList = false;
-
-  lines.forEach((line) => {
-    const trimmed = line.trim();
-    const isListItem = /^[-*]\s+/.test(trimmed);
-
-    if (isListItem) {
-      if (!inList) {
-        html += "<ul>";
-        inList = true;
-      }
-      const item = trimmed.replace(/^[-*]\s+/, "");
-      html += `<li>${formatInlineMarkdown(item)}</li>`;
-      return;
-    }
-
-    if (inList) {
-      html += "</ul>";
-      inList = false;
-    }
-
-    if (!trimmed) {
-      html += "<br>";
-      return;
-    }
-
-    html += `${formatInlineMarkdown(line)}<br>`;
-  });
-
-  if (inList) {
-    html += "</ul>";
-  }
-
-  return html.replace(/<br>$/u, "");
-}
-
 /** Refleja el estado real de conexión con el agente en la pestaña Asistente. */
 function actualizarEstadoAgente(conectado) {
   const estado = document.querySelector(".agent-status");
   if (estado) {
     estado.innerHTML = conectado
       ? `<span class="status-dot"></span> Conectada con el agente`
-      : `<span class="status-dot"></span> Sin conexión — respuestas de muestra`;
+      : `<span class="status-dot"></span> Sin conexión con el agente`;
   }
 }
 
 // ═══════════ panel LIA (sidebar derecho) ═══════════
 
-const CHAT_STORAGE_KEY = "agromyss-lia-conversation";
 const MAX_SIDEBAR_CHARS = 180;
 const liaHistorial = cargarConversacion();
 let liaOcupado = false;
 
-function cargarConversacion() {
-  try {
-    const guardada = JSON.parse(localStorage.getItem(CHAT_STORAGE_KEY) || "[]");
-    return Array.isArray(guardada) ? guardada.filter((m) => m && (m.rol === "yo" || m.rol === "lia" || m.rol === "error") && typeof m.texto === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
-function guardarConversacion() {
-  try { localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(liaHistorial.slice(-40))); } catch { /* almacenamiento opcional */ }
-}
+const guardar = () => guardarConversacion(liaHistorial);
 
 function textoCorto(texto, limite = MAX_SIDEBAR_CHARS) {
   const limpio = String(texto || "").replace(/\s+/g, " ").trim();
@@ -332,7 +234,7 @@ function renderSidebarLog() {
   if (!log) return;
   log.innerHTML = liaHistorial.slice(-4).reverse().map((m) => `
     <div class="lia-log-entry">
-      <span class="lia-log-role">${m.rol === "yo" ? "Tú" : m.rol === "error" ? "Modo demo" : "LIA"}</span>
+      <span class="lia-log-role">${m.rol === "yo" ? "Tú" : m.rol === "error" ? "Sin conexión" : "LIA"}</span>
       <span title="${escapeHtml(m.texto)}">${escapeHtml(textoCorto(m.texto))}</span>
     </div>`).join("");
 }
@@ -358,25 +260,28 @@ async function preguntarLia(prompt) {
   }
   if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot is-thinking"></i><span>Procesando pregunta…</span>';
   liaHistorial.push({ rol: "yo", texto: prompt });
-  guardarConversacion();
+  guardar();
   renderSidebarLog();
 
   try {
-    const reply = await enviarMensaje(liaHistorial, {});
+    const reply = await enviarMensaje(prompt, {});
     liaHistorial.push({ rol: "lia", texto: reply });
-    guardarConversacion();
+    guardar();
     insight.innerHTML = `<span class="csb-lia-insight-label"><i class="ph ph-sparkle"></i> Respuesta de LIA</span><span>${escapeHtml(textoCorto(reply))}</span>`;
     renderSidebarLog();
     actualizarEstadoAgente(true);
     if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot"></i><span>Conectada al agente</span>';
   } catch (error) {
-    const fallback = getReply(prompt);
-    liaHistorial.push({ rol: "lia", texto: fallback });
-    guardarConversacion();
-    insight.innerHTML = `<span class="csb-lia-insight-label"><i class="ph ph-sparkle"></i> Respuesta de LIA</span><span>${escapeHtml(textoCorto(fallback))}</span>`;
+    // NUNCA una respuesta inventada: esto es un panel de finca y lo que se
+    // guarda aquí se relee después sin la etiqueta de "muestra" al lado.
+    // Si el agente no contesta, se dice que no contestó.
+    const detalle = `No pude contactar al agente, así que no hay respuesta a esta pregunta.\n\nDetalle: ${error.message}`;
+    liaHistorial.push({ rol: "error", texto: detalle });
+    guardar();
+    insight.innerHTML = `<span class="csb-lia-insight-label"><i class="ph ph-warning"></i> Sin respuesta</span><span>${escapeHtml(textoCorto(detalle))}</span>`;
     renderSidebarLog();
     actualizarEstadoAgente(false);
-    if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot is-error"></i><span>Respuesta de muestra</span>';
+    if (connection) connection.innerHTML = '<i class="csb-lia-connection-dot is-error"></i><span>Sin conexión con el agente</span>';
   } finally {
     liaOcupado = false;
     renderSugerencias();

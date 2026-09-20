@@ -27,7 +27,7 @@
 // ─────────────────────────────────────────────────────────────
 
 // El mismo parser que usa la web para la hoja; wrangler lo empaqueta.
-import { parseCSV, indexarEncabezados } from "../src/app/js/csv.js";
+import { parseCSV, indexarEncabezados, normalizarTexto } from "../src/app/js/csv.js";
 
 const TIMEOUT_MS = 85000;     // por debajo del límite de borde de Cloudflare (~100s);
                                // por encima del timeout interno del puente (120s lo excede,
@@ -181,6 +181,21 @@ async function llamarPuente(env, mensaje, identidad) {
   }
 }
 
+/** ¿Responde el puente en nemoclaw? Corto: es para pintar un punto de color. */
+async function puenteVivo(env) {
+  const base = (env.BRIDGE_URL || "https://api.agromyss.com/agent").replace(/\/+$/, "");
+  try {
+    const res = await fetch(`${base}/salud`, {
+      headers: { authorization: `Bearer ${env.BRIDGE_TOKEN}` },
+      signal: AbortSignal.timeout(5000)
+    });
+    return res.ok;
+  } catch (err) {
+    console.error("salud del puente", err?.message || err);
+    return false;
+  }
+}
+
 /** Proxy JSON estrecho para el registro compartido de propuestas. */
 async function llamarPuenteJson(env, ruta, metodo, cuerpo, actor) {
   const base = (env.BRIDGE_URL || "https://api.agromyss.com/agent").replace(/\/+$/, "");
@@ -232,10 +247,25 @@ async function leerJson(request) {
 
 const MAX_SENSORES = 1500; // caracteres de MAX_MENSAJE reservados para la hoja
 const MAX_PISTA = 400;     // el contexto del panel lo manda el navegador: se acota
+const TTL_HOJA_MS = 60000; // la hoja la llena una persona a mano: un minuto sobra
 
-/** Lecturas de la hoja en texto compacto, o null si no hay hoja o falló. */
-async function contextoSensores(env) {
+const ESTADOS_VALIDOS = ["ok", "aviso", "alerta", "sin señal"];
+
+let cacheHoja = null; // { url, sensores, expira } — vive mientras dure el isolate
+
+/**
+ * Lecturas de la hoja ya parseadas, o null si no hay hoja o falló.
+ *
+ * Es la única lectura del CSV en todo el sistema: la usa /api/sensores (el
+ * panel) y cada turno de chat. Cacheada, para que N pestañas abiertas no
+ * signifiquen N descargas por minuto.
+ */
+async function leerSensores(env) {
   if (!env.SHEET_CSV_URL) return null;
+  if (cacheHoja && cacheHoja.url === env.SHEET_CSV_URL && cacheHoja.expira > Date.now()) {
+    return cacheHoja.sensores;
+  }
+
   try {
     const res = await fetch(env.SHEET_CSV_URL, { signal: AbortSignal.timeout(5000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -246,16 +276,25 @@ async function contextoSensores(env) {
     if (iId === -1 || iValor === -1) return null;
 
     const c = (fila, i) => (i === -1 ? "" : String(fila[i] ?? "").trim());
-    const lineas = filas.filter((f) => c(f, iValor)).map((f) => {
-      const cuando = c(f, iFecha) ? `, ${c(f, iFecha)}` : "";
-      return `${c(f, iId)} ${c(f, iLugar)} · ${c(f, iTipo)}: ${c(f, iValor)}${c(f, iUnidad)} (${c(f, iEstado) || "ok"}${cuando})`;
-    });
-    const sinLectura = filas.length - lineas.length;
+    const sensores = filas.map((f) => {
+      // Comparamos normalizado (sin acentos/mayúsculas) pero guardamos el valor
+      // canónico con ñ/acentos intactos, para no perder "sin señal" al comparar.
+      const estadoCrudo = normalizarTexto(c(f, iEstado));
+      return {
+        id: c(f, iId),
+        lugar: c(f, iLugar),
+        tipo: c(f, iTipo),
+        valor: Number(c(f, iValor).replace(",", ".")) || 0,
+        unidad: c(f, iUnidad),
+        estado: ESTADOS_VALIDOS.find((e) => normalizarTexto(e) === estadoCrudo) ?? "ok",
+        fecha: c(f, iFecha),
+        // El panel esconde las filas sin anotar; el agente las cuenta.
+        conLectura: c(f, iValor) !== ""
+      };
+    }).filter((s) => s.id);
 
-    let texto = lineas.length ? lineas.join("\n") : "Ningún sensor tiene lectura anotada todavía.";
-    if (lineas.length && sinLectura) texto += `\n(${sinLectura} sensores más sin lectura anotada)`;
-    // ponytail: recorte duro; si la hoja crece mucho, pasarla como archivo del workspace del agente.
-    return texto.slice(0, MAX_SENSORES);
+    cacheHoja = { url: env.SHEET_CSV_URL, sensores, expira: Date.now() + TTL_HOJA_MS };
+    return sensores;
   } catch (err) {
     // Sin hoja el chat sigue funcionando; sólo pierde este contexto.
     console.error("hoja de sensores", err?.message || err);
@@ -263,20 +302,44 @@ async function contextoSensores(env) {
   }
 }
 
+/** Las mismas lecturas en texto compacto para el agente, o null. */
+function textoSensores(sensores) {
+  if (!sensores) return null;
+  const conLectura = sensores.filter((s) => s.conLectura);
+  const lineas = conLectura.map(
+    (s) => `${s.id} ${s.lugar} · ${s.tipo}: ${s.valor}${s.unidad} (${s.estado}${s.fecha ? `, ${s.fecha}` : ""})`
+  );
+  const sinLectura = sensores.length - conLectura.length;
+
+  let texto = lineas.length ? lineas.join("\n") : "Ningún sensor tiene lectura anotada todavía.";
+  if (lineas.length && sinLectura) texto += `\n(${sinLectura} sensores más sin lectura anotada)`;
+  // ponytail: recorte duro; si la hoja crece mucho, pasarla como archivo del workspace del agente.
+  return texto.slice(0, MAX_SENSORES);
+}
+
+/** Lo que el panel pinta: sólo las filas con lectura anotada. */
+async function manejarSensores(env) {
+  const sensores = await leerSensores(env);
+  if (!sensores) return json({ sensores: [] });
+  return json({
+    sensores: sensores
+      .filter((s) => s.conLectura)
+      .map(({ conLectura, ...s }) => s)
+  });
+}
+
 // ── /api/chat ────────────────────────────────────────────────
 //
 // El puente mantiene el historial por su cuenta (una sesión de agente
-// por identidad), así que sólo hace falta el último mensaje del
-// usuario, no la conversación completa. El cliente sigue mandando
-// `mensajes` con todo el historial local — aquí sólo se usa el último.
+// por identidad), así que sólo viaja el mensaje nuevo. Lo que el
+// navegador guarda en localStorage es para repintar la página, no para
+// el agente: mandarlo entero era peso muerto que el Worker descartaba.
 
 async function manejarChat(request, env, email) {
-  const { mensajes = [], contexto = {} } = await leerJson(request);
-
-  const ultimo = [...mensajes].reverse().find(
-    (m) => m && m.rol === "yo" && typeof m.texto === "string" && m.texto.trim()
-  );
-  if (!ultimo) return error("Falta el mensaje.", 400);
+  const { mensaje: pregunta = "", contexto = {} } = await leerJson(request);
+  if (typeof pregunta !== "string" || !pregunta.trim()) {
+    return error("Falta el mensaje.", 400);
+  }
 
   const pista = [
     contexto.lote && `Lote seleccionado: ${contexto.lote}.`,
@@ -285,13 +348,15 @@ async function manejarChat(request, env, email) {
     contexto.rango && `Rango de tiempo: ${contexto.rango}.`
   ].filter(Boolean).join(" ").slice(0, MAX_PISTA);
 
-  const sensores = await contextoSensores(env);
+  const sensores = textoSensores(await leerSensores(env));
   const extra =
     (pista ? `\n\n[Contexto del panel: ${pista}]` : "") +
     (sensores ? `\n\n[Lecturas de sensores de la finca (hoja del formulario, leída ahora):\n${sensores}]` : "");
 
   // El puente devuelve 400 por encima de MAX_MENSAJE: se recorta la pregunta, no el contexto.
-  const mensaje = String(ultimo.texto).slice(0, MAX_MENSAJE - extra.length) + extra;
+  // Math.max porque un slice negativo no recorta: se queda con la COLA de la
+  // pregunta, que es justo lo contrario de lo que queremos.
+  const mensaje = pregunta.trim().slice(0, Math.max(0, MAX_MENSAJE - extra.length)) + extra;
 
   const respuesta = await llamarPuente(env, mensaje, email);
   return json({ respuesta });
@@ -364,9 +429,14 @@ export default {
       const ruta = url.pathname.replace(/\/+$/, "");
 
       if (ruta === "/api/salud") {
-        // No comprueba el puente en sí (esa ruta no está publicada por
-        // Caddy); confirma que el Worker tiene lo necesario para intentarlo.
-        return json({ ok: true });
+        // Pregunta de verdad al puente: un Worker sano con nemoclaw caído
+        // decía "ok" y la web anunciaba "conectada" mientras todo fallaba.
+        return json({ ok: true, puente: await puenteVivo(env) });
+      }
+
+      if (ruta === "/api/sensores") {
+        if (request.method !== "GET") return error("Usa GET.", 405);
+        return await manejarSensores(env);
       }
 
       if (ruta === "/api/chat") {
