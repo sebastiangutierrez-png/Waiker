@@ -8,8 +8,8 @@
   <!-- Phosphor Icons (familia única en todo el panel). Reemplazó a los
        emojis que se usaban antes como iconos de navegación y de tarjeta. -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@phosphor-icons/web@2.1.1/src/regular/style.css" />
-  <link rel="stylesheet" href="../css/styles.css?v=13" />
-  <script type="module" src="js/main.js?v=5"></script>
+  <link rel="stylesheet" href="../css/styles.css?v=14" />
+  <script type="module" src="js/main.js?v=7"></script>
 </head>
 
 <body>
@@ -48,65 +48,30 @@
             <h1>Hacienda Mesetas</h1>
             <p>Vereda Santa Bárbara, Maceo · Cañón del río Alicante</p>
           </div>
-          <div class="c-head-actions">
-            <select class="c-select" aria-label="Campaña"><option>Campaña 2025/26</option></select>
-            <button type="button" class="c-select">Hoy</button>
-          </div>
+          <span class="pill" id="resumenSync">Lecturas de muestra</span>
         </div>
 
         <div class="c-stats" id="resumenStats"></div>
 
         <div class="c-grid">
           <div class="c-card">
-            <div class="c-card-head">
-              <h3>Fertilidad del suelo</h3>
-              <span class="pill">Análisis 2023</span>
-            </div>
-            <div class="fert-cifra">
-              <strong id="fertilidadValor">-</strong>
-              <span>pH promedio de los 6 lotes</span>
-            </div>
-            <div class="fert-bandas" id="fertilidadBandas"></div>
-            <p class="muted" style="font-size:11.5px;margin-top:10px">
-              El rango deseable para cacao va de 5,5 a 6,5. Por debajo de 5,5 el aluminio
-              empieza a bloquear la absorción de fósforo y calcio.
-            </p>
+            <h3>Requiere atención</h3>
+            <div class="c-list" id="resumenAtencion"></div>
           </div>
 
           <div class="c-card">
-            <h3>Lotes</h3>
-            <div class="map-board" style="min-height:230px">
-              <div class="map-center">
-                <strong>Beneficiadero</strong>
-                <span>Fermentación y secado en sitio</span>
-              </div>
-              <div class="map-grid" id="mapaLotes"></div>
+            <div class="c-card-head">
+              <h3>Estado por lote</h3>
+              <button type="button" class="ghost-btn" data-page="sensores">Ver sensores</button>
             </div>
+            <div class="map-grid" id="mapaLotes"></div>
           </div>
         </div>
 
         <div class="c-cols-3">
           <div class="c-card">
-            <h3>Clima</h3>
-            <div style="display:flex;align-items:center;gap:12px;margin-top:6px">
-              <i class="ph ph-cloud-sun" style="font-size:28px;color:var(--olive)"></i>
-              <div>
-                <strong style="font-size:20px;display:block" id="homeAverageTemperature2">22°C</strong>
-                <span class="muted" style="font-size:12px" id="homeCondicion">Parcialmente nublado</span>
-              </div>
-            </div>
-            <div class="c-clima-dias" id="homeClimaDias">
-              <div class="c-clima-dia">Hoy<strong>22°</strong>12°</div>
-              <div class="c-clima-dia">Jue<strong>23°</strong>13°</div>
-              <div class="c-clima-dia">Vie<strong>25°</strong>14°</div>
-              <div class="c-clima-dia">Sáb<strong>24°</strong>13°</div>
-              <div class="c-clima-dia">Dom<strong>21°</strong>11°</div>
-            </div>
-          </div>
-
-          <div class="c-card">
-            <h3>Sensores</h3>
-            <div class="c-list" id="resumenSensores"></div>
+            <h3>Próximos días</h3>
+            <div class="c-clima-dias" id="homeClimaDias"></div>
           </div>
 
           <div class="c-card">
@@ -360,10 +325,9 @@
         <span class="csb-lia-connection" id="liaConnection"><i class="csb-lia-connection-dot"></i><span>Lista para ayudarte</span></span>
       </div>
 
-      <div class="csb-lia-insight" id="liaInsight" aria-live="polite">
+      <div class="csb-lia-insight" id="liaInsight" data-origen="sensores" aria-live="polite">
         <span class="csb-lia-insight-label"><i class="ph ph-sparkle"></i> Lectura rápida</span>
-        El lote El Huevo bajó a pH 4,9 en el análisis de 2023 y perdió capacidad de intercambio.
-        Es el primero que conviene corregir.
+        <span id="liaInsightTexto">Revisando las lecturas de los sensores.</span>
       </div>
 
       <div>

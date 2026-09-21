@@ -910,43 +910,9 @@ h1 span {
   min-height: 220px;
 }
 
-.map-board {
-  position: relative;
-  min-height: 260px;
-  border-radius: 24px;
-  border: 1px solid var(--line);
-  background:
-    radial-gradient(circle at center, rgba(139,144,34,.10), transparent 42%),
-    repeating-linear-gradient(0deg, rgba(49,57,24,.04) 0 1px, transparent 1px 28px),
-    repeating-linear-gradient(90deg, rgba(49,57,24,.04) 0 1px, transparent 1px 28px);
-  padding: 18px;
-  display: grid;
-  grid-template-rows: auto 1fr;
-  gap: 16px;
-}
-
-.map-center {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 16px;
-  border-radius: 20px;
-  background: var(--forest);
-  color: white;
-  font-weight: 900;
-  justify-self: center;
-  text-align: center;
-}
-
-.map-center span {
-  color: rgba(255,255,255,.7);
-  font-weight: 700;
-  font-size: 12px;
-}
-
 .map-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
   gap: 12px;
 }
 
@@ -2615,56 +2581,6 @@ h1 span {
 }
 /* ═══════════ Bloques de laboratorio (suelos, foliares, catación) ═══════════ */
 
-.fert-cifra {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin: 12px 0 14px;
-}
-
-.fert-cifra strong {
-  font-size: 34px;
-  line-height: 1;
-  font-variant-numeric: tabular-nums;
-}
-
-.fert-cifra span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.fert-bandas {
-  display: grid;
-  gap: 9px;
-}
-
-.fert-fila {
-  display: grid;
-  grid-template-columns: 130px 1fr 20px;
-  align-items: center;
-  gap: 10px;
-  font-size: 12px;
-}
-
-.fert-nombre {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-}
-
-.fert-nombre i {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex: none;
-}
-
-.fert-fila b {
-  text-align: right;
-  font-variant-numeric: tabular-nums;
-}
-
 .lote-codigo {
   color: var(--muted);
   font-size: 11px;
@@ -2816,10 +2732,6 @@ h1 span {
 }
 
 @media (max-width: 720px) {
-  .fert-fila {
-    grid-template-columns: 108px 1fr 20px;
-  }
-
   .calidad-fila {
     grid-template-columns: 84px 1fr 28px;
   }
@@ -2929,17 +2841,19 @@ h1 span {
 }
 
 /* ═══════════ Resumen: rejillas según el ancho real del contenido ═══════════ */
-/* El mapa de lotes necesita ~580px; con el panel LIA abierto no cabe junto a
-   Fertilidad hasta ~1600px de ventana, así que antes de eso se apilan. */
+/* Estado por lote necesita ~580px; con el panel LIA abierto no cabe junto a
+   Requiere atención hasta ~1600px de ventana, así que antes de eso se apilan. */
 @media (max-width: 1600px) {
   .c-grid { grid-template-columns: 1fr; }
 }
-/* Son 4 tarjetas: 2×2 en anchos medios, 4 en fila en pantallas grandes. */
+/* Son 3 tarjetas: 2 + 1 a lo ancho en anchos medios, 3 en fila en pantallas grandes. */
 @media (min-width: 721px) {
   .c-cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .c-cols-3 > :last-child { grid-column: 1 / -1; }
 }
 @media (min-width: 1601px) {
-  .c-cols-3 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .c-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .c-cols-3 > :last-child { grid-column: auto; }
 }
 
 /* Objetivos táctiles de 44px en pantallas táctiles. */

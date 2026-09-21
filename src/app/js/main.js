@@ -4,7 +4,7 @@ import { HILO_DEMO, REGISTRO_DEMO, TAREAS, TAREAS_HECHAS, SENSORES, COLOR_SENSOR
 import { iniciarSincronizacionSensores } from "./sheetSensores.js";
 import { esc as escapeHtml, cargarConversacion, guardarConversacion } from "./chat.js";
 import { iniciarSincronizacionClima } from "./climaApi.js";
-import { renderFinca, renderLotes, renderMapaLotes } from "./finca.js";
+import { renderFinca, renderLotes } from "./finca.js";
 
 const navButtons = document.querySelectorAll(".csb-nav [data-page]");
 const pages = document.querySelectorAll(".page");
@@ -50,7 +50,6 @@ async function decidir(ancla, valor) {
   decisiones[ancla] = valor;
   renderAcciones();
   renderTimeline();
-  renderSugerencias();
   renderResumenPropuestas();
   renderDetallePropuesta();
 }
@@ -83,7 +82,6 @@ async function sincronizarPropuestas() {
     }));
     renderAcciones();
     renderTimeline();
-    renderSugerencias();
     renderResumenPropuestas();
     renderDetallePropuesta();
     const aviso = document.querySelector(".proposal-demo-notice");
@@ -159,6 +157,9 @@ function renderSensoresPagina() {
 function marcarSincronizado() {
   const pill = document.getElementById("sensoresEstadoSync");
   if (pill) pill.textContent = "Sincronizado con la hoja";
+  const hora = new Date().toLocaleTimeString("es-CO", { hour: "numeric", minute: "2-digit" });
+  const resumen = document.getElementById("resumenSync");
+  if (resumen) resumen.textContent = `Hoja de campo · ${hora}`;
 }
 
 function setTexto(id, valor) {
@@ -179,10 +180,8 @@ function renderPronostico({ actual, horas, dias }) {
     setTexto("climaLluviaCard", actual.lluviaTexto);
     setTexto("climaPluvCard", `${actual.pluviometriaMm} mm`);
 
-    // Mismo dato en la tarjeta compacta de Clima del Resumen — antes era
-    // texto fijo, nunca conectado al pronóstico real.
-    setTexto("homeAverageTemperature2", `${actual.temp}°C`);
-    setTexto("homeCondicion", actual.condicion);
+    climaActual = actual;
+    renderResumen();
   }
 
   if (horas.length) {
@@ -239,10 +238,6 @@ function renderSidebarLog() {
     </div>`).join("");
 }
 
-function iconoSugerencia(tono) {
-  return tono === "clay" ? "ph-warning" : tono === "leaf" ? "ph-calendar-check" : "ph-cloud-rain";
-}
-
 async function preguntarLia(prompt) {
   const insight = document.getElementById("liaInsight");
   const log = document.getElementById("liaLog");
@@ -252,6 +247,7 @@ async function preguntarLia(prompt) {
   if (!insight || liaOcupado) return;
 
   liaOcupado = true;
+  delete insight.dataset.origen;
   insight.innerHTML = '<span class="csb-lia-insight-label"><i class="ph ph-spinner lia-spin"></i> LIA está revisando</span><span class="csb-lia-loading-lines"><i></i><i></i><i></i></span>';
   if (input) input.disabled = true;
   if (send) {
@@ -313,55 +309,129 @@ document.getElementById("chatInput")?.addEventListener("keydown", (event) => {
   }
 });
 
+/** Sugerencias = preguntas para LIA armadas con lo que pasa ahora (sensores
+ *  fuera de rango y pronóstico). No repiten las propuestas: esas ya tienen
+ *  su tarjeta en el Resumen y su página. */
 function renderSugerencias() {
   const cont = document.getElementById("liaSugerencias");
   if (!cont) return;
 
-  const prioridad = {
-    clay: ["Prioridad alta", "var(--danger)"],
-    wheat: ["Prioridad media", "var(--gold)"],
-    leaf: ["Prioridad baja", "var(--olive)"],
-  };
+  const lista = fueraDeRango().slice(0, 2).map((s) => ({
+    icono: "ph-warning",
+    color: s.estado === "alerta" ? "var(--danger)" : "var(--gold)",
+    titulo: `${s.tipo || s.id} en ${s.lugar}: ${s.valor}${s.unidad}`,
+    pregunta: `El sensor ${s.id} (${s.tipo || "sin tipo"}) en ${s.lugar} marca ${s.valor}${s.unidad}, en estado ${s.estado}. ¿Qué debería revisar en campo?`
+  }));
+  const c = climaActual;
+  if (c && c.lluviaProb >= 50) {
+    lista.push({
+      icono: "ph-cloud-rain", color: "var(--blue)",
+      titulo: `${c.notaLluvia} (${c.lluviaProb}%)`,
+      pregunta: `El pronóstico da ${c.lluviaProb}% de lluvia hoy (${c.notaLluvia.toLowerCase()}). ¿Qué labores conviene mover o proteger?`
+    });
+  } else if (c?.ventana) {
+    lista.push({
+      icono: "ph-spray-bottle", color: "#7f9b4a",
+      titulo: `Ventana seca de ${c.ventana}`,
+      pregunta: `Hay una ventana sin lluvia de ${c.ventana}. ¿Qué aplicaciones o labores caben en ese tramo?`
+    });
+  }
+  if (!lista.length) {
+    lista.push({
+      icono: "ph-chat-circle-dots", color: "var(--olive)",
+      titulo: "Resumen del estado de la finca",
+      pregunta: "Dame un resumen corto del estado de la finca hoy con los sensores y el clima."
+    });
+  }
 
-  const pendientes = acciones().filter((h) => modoDe(h) === "pendiente");
-  const visibles = liaHistorial.some((m) => m.rol === "yo") ? pendientes.slice(0, 2) : pendientes;
   const contador = document.getElementById("liaSuggestionCount");
-  if (contador) contador.textContent = visibles.length;
-  cont.innerHTML = visibles.length
-    ? visibles.map((h) => {
-      const [texto, color] = prioridad[h.tono] || prioridad.wheat;
-      return `
-        <button type="button" class="csb-sug" data-propuesta="${escapeHtml(h.ancla)}" aria-label="Ver propuesta: ${escapeHtml(h.lead)}">
-          <span class="csb-sug-icon" style="background:${color}"><i class="ph ${iconoSugerencia(h.tono)}"></i></span>
-          <div>
-            <strong>${escapeHtml(h.lead)}</strong>
-            <em style="color:${color}">${texto}</em>
-          </div>
-          <i class="ph ph-arrow-up-right csb-sug-arrow"></i>
-        </button>`;
-    }).join("")
-    : `<div class="csb-sug csb-sug-empty"><span class="csb-sug-icon" style="background:var(--olive)"><i class="ph ph-check"></i></span><div><strong>Sin sugerencias pendientes.</strong><em>Todo está al día</em></div></div>`;
+  if (contador) contador.textContent = lista.length;
+  cont.innerHTML = lista.map((x) => `
+    <button type="button" class="csb-sug" data-pregunta="${escapeHtml(x.pregunta)}" aria-label="Preguntar a LIA: ${escapeHtml(x.titulo)}">
+      <span class="csb-sug-icon" style="background:${x.color}"><i class="ph ${x.icono}"></i></span>
+      <div>
+        <strong>${escapeHtml(x.titulo)}</strong>
+        <em style="color:${x.color}">Preguntar a LIA</em>
+      </div>
+      <i class="ph ph-arrow-up-right csb-sug-arrow"></i>
+    </button>`).join("");
 }
 
-renderSidebarLog();
-
 document.getElementById("liaSugerencias")?.addEventListener("click", (event) => {
-  const button = event.target.closest("[data-propuesta]");
-  if (button) {
-    abrirPropuesta(button.dataset.propuesta);
-  }
+  const button = event.target.closest("[data-pregunta]");
+  if (button && !liaOcupado) preguntarLia(button.dataset.pregunta);
 });
 
 // ═══════════ Resumen: listas de sensores y tareas ═══════════
 
-function renderResumenSensores() {
-  const cont = document.getElementById("resumenSensores");
-  if (!cont || !SENSORES.length) return;
-  cont.innerHTML = SENSORES.slice(0, 4).map((s) => `
-    <div class="c-list-row">
-      <div><strong>${escapeHtml(s.lugar)}</strong><span>${escapeHtml(s.tipo || s.id)}</span></div>
-      <span style="color:${s.estado === "aviso" ? "#84601b" : COLOR_SENSOR[s.estado]};font-weight:800">${s.valor}${s.unidad}</span>
-    </div>`).join("");
+const RANGO_ESTADO = { alerta: 3, aviso: 2, "sin señal": 1, ok: 0 };
+const ETIQUETA_ESTADO = { alerta: "Alerta", aviso: "Aviso", "sin señal": "Sin señal", ok: "En rango" };
+let climaActual = null;
+
+const fueraDeRango = () =>
+  SENSORES.filter((s) => s.estado !== "ok").sort((a, b) => RANGO_ESTADO[b.estado] - RANGO_ESTADO[a.estado]);
+
+/** Resumen = lo que pasa ahora: pronóstico real y la hoja de sensores.
+ *  Nada de informes de laboratorio aquí; esos viven en Lotes y Laboratorio. */
+function renderResumen() {
+  const fuera = fueraDeRango();
+  const alertas = fuera.filter((s) => s.estado === "alerta").length;
+
+  const stats = document.getElementById("resumenStats");
+  if (stats) {
+    const c = climaActual;
+    const tarjetas = [
+      ["ph-thermometer-simple", "var(--olive)", "Ahora en la finca", c ? `${c.temp}°C` : "–", c ? c.condicion : "Consultando pronóstico"],
+      ["ph-cloud-rain", "var(--blue)", "Lluvia hoy", c ? `${c.lluviaProb}%` : "–", c ? c.notaLluvia : ""],
+      ["ph-spray-bottle", "#7f9b4a", "Ventana de aplicación", c ? c.ventana || "Sin ventana" : "–", "Tramo seco de 2 h o más"],
+      ["ph-warning", fuera.length ? (alertas ? "var(--danger)" : "var(--gold)") : "var(--olive)", "Lecturas fuera de rango",
+        `${fuera.length} de ${SENSORES.length}`, alertas ? `${alertas} en alerta` : fuera.length ? "Ninguna en alerta" : "Todo en rango"]
+    ];
+    stats.innerHTML = tarjetas.map(([icono, color, titulo, valor, nota]) => `
+      <div class="c-stat">
+        <div class="c-stat-icon" style="background:${color}"><i class="ph ${icono}"></i></div>
+        <div><small>${escapeHtml(titulo)}</small><strong>${escapeHtml(valor)}</strong><span>${escapeHtml(nota)}</span></div>
+      </div>`).join("");
+  }
+
+  const atencion = document.getElementById("resumenAtencion");
+  if (atencion) {
+    atencion.innerHTML = fuera.length
+      ? fuera.slice(0, 5).map((s) => `
+        <div class="c-list-row">
+          <div><strong>${escapeHtml(s.lugar)}</strong><span>${escapeHtml(s.tipo || s.id)} · ${ETIQUETA_ESTADO[s.estado]}${s.fecha ? ` · ${escapeHtml(s.fecha)}` : ""}</span></div>
+          <span style="color:${s.estado === "aviso" ? "#84601b" : COLOR_SENSOR[s.estado]};font-weight:800">${s.valor}${escapeHtml(s.unidad)}</span>
+        </div>`).join("") + (fuera.length > 5 ? `<span class="muted">Y ${fuera.length - 5} más en Sensores.</span>` : "")
+      : '<p class="muted">Todas las lecturas están en rango.</p>';
+  }
+
+  const mapa = document.getElementById("mapaLotes");
+  if (mapa) {
+    const porLugar = new Map();
+    SENSORES.forEach((s) => porLugar.set(s.lugar, [...(porLugar.get(s.lugar) || []), s]));
+    mapa.innerHTML = [...porLugar].map(([lugar, sensores]) => {
+      const peor = sensores.reduce((a, s) => (RANGO_ESTADO[s.estado] > RANGO_ESTADO[a] ? s.estado : a), "ok");
+      const clase = { alerta: " danger", aviso: " warning" }[peor] || "";
+      const pill = { alerta: "pill red", aviso: "pill yellow" }[peor] || "pill";
+      return `
+        <div class="map-card${clase}">
+          <span class="${pill}">${ETIQUETA_ESTADO[peor]}</span>
+          <h4>${escapeHtml(lugar)}</h4>
+          <p>${sensores.map((s) => `${escapeHtml(s.tipo || s.id)} ${s.valor}${escapeHtml(s.unidad)}`).join(", ")}</p>
+        </div>`;
+    }).join("");
+  }
+
+  // La lectura rápida sale de los sensores hasta que LIA conteste algo.
+  const insight = document.getElementById("liaInsightTexto");
+  if (insight && document.getElementById("liaInsight")?.dataset.origen === "sensores") {
+    const s = fuera[0];
+    insight.textContent = s
+      ? `${fuera.length} ${fuera.length === 1 ? "lectura fuera" : "lecturas fuera"} de rango. La primera: ${s.tipo || s.id} en ${s.lugar}, ${s.valor}${s.unidad} (${ETIQUETA_ESTADO[s.estado].toLowerCase()}).`
+      : "Todas las lecturas de los sensores están en rango.";
+  }
+
+  renderSugerencias();
 }
 
 function renderTareas(containerId, limite) {
@@ -465,9 +535,8 @@ function renderTimeline() {
 cargarHilo();
 renderAcciones();
 renderTimeline();
-renderSugerencias();
 renderResumenPropuestas();
-renderResumenSensores();
+renderResumen();
 renderSensoresPagina();
 renderTareas("resumenTareas", 4);
 renderTareas("taskListFull", null);
@@ -475,10 +544,9 @@ renderFinca();
 void sincronizarPropuestas();
 hayConexion().then(actualizarEstadoAgente);
 iniciarSincronizacionSensores(SENSORES, () => {
-  renderResumenSensores();
+  renderResumen();
   renderSensoresPagina();
   renderLotes();
-  renderMapaLotes();
   marcarSincronizado();
 });
 iniciarSincronizacionClima(renderPronostico);

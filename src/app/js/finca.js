@@ -7,7 +7,7 @@
 //  sigue igual.
 // ─────────────────────────────────────────────────────────────
 
-import { LOTES, SUELOS, FOLIARES, CALIDAD, CLONES, REFERENCIA_SUELO, COLOR_SENSOR, SENSORES } from "./data.js";
+import { LOTES, SUELOS, FOLIARES, CALIDAD, REFERENCIA_SUELO, COLOR_SENSOR, SENSORES } from "./data.js";
 
 const esc = (v) =>
   String(v ?? "")
@@ -27,7 +27,7 @@ function ultimoSuelo(loteId) {
   return SUELOS.filter((s) => s.lote === loteId).sort((a, b) => b.anio - a.anio)[0];
 }
 
-/** Bandas de acidez usadas en la tarjeta de fertilidad y en las tarjetas de lote. */
+/** Bandas de acidez usadas en las tarjetas de lote. */
 const BANDAS = [
   { nombre: "Deseable", min: 5.5, color: "var(--olive)" },
   { nombre: "Ligeramente ácido", min: 5.0, color: "var(--gold)", texto: "#84601b" },
@@ -36,73 +36,6 @@ const BANDAS = [
 
 function bandaDe(pH) {
   return BANDAS.find((b) => pH >= b.min) ?? BANDAS[BANDAS.length - 1];
-}
-
-// ═══════════ Resumen ═══════════
-
-export function renderStats() {
-  const cont = document.getElementById("resumenStats");
-  if (!cont) return;
-
-  const ultimos = LOTES.map((l) => ultimoSuelo(l.id)).filter(Boolean);
-  const pHProm = ultimos.reduce((a, s) => a + s.pH, 0) / ultimos.length;
-  const mejor = [...CALIDAD].sort((a, b) => b.global - a.global)[0];
-
-  const tarjetas = [
-    ["ph-plant", "var(--olive)", "Lotes en cacao", LOTES.length, `${ultimos.length} con análisis de suelo`],
-    ["ph-tree-structure", "#7f9b4a", "Material vegetal", CLONES.length, CLONES.join(" · ")],
-    ["ph-drop-half", bandaDe(pHProm).color, "pH promedio", num(pHProm, 1), `Rango deseable 5,5 a 6,5`],
-    ["ph-coffee-bean", "var(--gold)", "Mejor catación", `${num(mejor.global, 1)}/10`, `${mejor.material} · ${mejor.fecha}`]
-  ];
-
-  cont.innerHTML = tarjetas.map(([icono, color, titulo, valor, nota]) => `
-    <div class="c-stat">
-      <div class="c-stat-icon" style="background:${color}"><i class="ph ${icono}"></i></div>
-      <div><small>${esc(titulo)}</small><strong>${esc(valor)}</strong><span>${esc(nota)}</span></div>
-    </div>`).join("");
-}
-
-export function renderFertilidad() {
-  const cifra = document.getElementById("fertilidadValor");
-  const bandas = document.getElementById("fertilidadBandas");
-  if (!cifra || !bandas) return;
-
-  const ultimos = LOTES.map((l) => ({ lote: l, suelo: ultimoSuelo(l.id) })).filter((x) => x.suelo);
-  const pHProm = ultimos.reduce((a, x) => a + x.suelo.pH, 0) / ultimos.length;
-
-  cifra.textContent = num(pHProm, 1);
-  cifra.style.color = bandaDe(pHProm).texto || bandaDe(pHProm).color;
-
-  bandas.innerHTML = BANDAS.map((b) => {
-    const dentro = ultimos.filter((x) => bandaDe(x.suelo.pH).nombre === b.nombre);
-    const pct = Math.round((dentro.length / ultimos.length) * 100);
-    return `
-      <div class="fert-fila">
-        <span class="fert-nombre"><i style="background:${b.color}"></i>${esc(b.nombre)}</span>
-        <div class="progress-bar"><span style="width:${pct}%;background:${b.color}"></span></div>
-        <b>${dentro.length}</b>
-      </div>`;
-  }).join("");
-}
-
-/** Tarjetas compactas del mapa del Resumen. Muestran el dato que sí está
- *  medido (pH del último análisis) en vez de una humedad inventada. */
-export function renderMapaLotes() {
-  const cont = document.getElementById("mapaLotes");
-  if (!cont) return;
-
-  cont.innerHTML = LOTES.map((l) => {
-    const s = ultimoSuelo(l.id);
-    const banda = bandaDe(s.pH);
-    const clase = banda.nombre === "Deseable" ? "" : banda.nombre === "Ácido" ? " danger" : " warning";
-    const pill = banda.nombre === "Deseable" ? "pill" : banda.nombre === "Ácido" ? "pill red" : "pill yellow";
-    return `
-      <div class="map-card${clase}">
-        <span class="${pill}">${esc(banda.nombre)}</span>
-        <h4>${esc(l.id)} · ${esc(l.nombre)}</h4>
-        <p>pH ${num(s.pH, 1)} · materia orgánica ${num(s.mo, 2)}%</p>
-      </div>`;
-  }).join("");
 }
 
 // ═══════════ Página de lotes ═══════════
@@ -265,9 +198,6 @@ export function renderTablasLab() {
 /** Un solo punto de entrada para main.js. Se puede volver a llamar cuando la
  *  hoja de campo trae lecturas nuevas: las tarjetas de lote las muestran. */
 export function renderFinca() {
-  renderStats();
-  renderFertilidad();
-  renderMapaLotes();
   renderLotes();
   renderCalidad();
   renderTablasLab();
